@@ -538,7 +538,21 @@ function renderDiffTables(diff) {
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
+async function refreshIntegrations() {
+  try {
+    const h = await api('/api/health');
+    const it = h.integrations || {};
+    const chip = (label, on) =>
+      `<span class="iteg ${on ? 'on' : 'off'}"><span class="dot"></span>${label}</span>`;
+    $('#integrations').innerHTML =
+      chip('APS', !!it.aps) + chip('S3', !!it.s3);
+  } catch (err) {
+    $('#integrations').innerHTML = '<span class="iteg off"><span class="dot"></span>offline</span>';
+  }
+}
+
 async function boot() {
+  refreshIntegrations();
   await refreshJobs();
   if (!state.activeId && state.jobs.length) {
     const done = state.jobs.find((j) => j.status === 'completed') || state.jobs[0];

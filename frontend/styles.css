@@ -46,6 +46,15 @@ html, body {
 .brand-text { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
 .brand-text em { color: var(--accent-2); font-style: normal; }
 .tagline { color: var(--muted); font-size: 13px; }
+.integrations { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.iteg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+  padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+  color: var(--muted); background: var(--panel-2); }
+.iteg .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.iteg.on { color: var(--ok); }
+.iteg.on .dot { background: var(--ok); }
+.iteg.off { color: var(--muted); }
+.iteg.off .dot { background: var(--err); }
 
 main {
   max-width: 1180px;

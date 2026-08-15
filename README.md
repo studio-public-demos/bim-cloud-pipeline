@@ -36,6 +36,31 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8765 --app-dir backend
 # 3. open http://127.0.0.1:8765
 ```
 
+## Deployment (live demo)
+
+The pipeline needs a Python backend (it cannot run on static hosting such as
+GitHub Pages). Two easy options:
+
+**Hugging Face Spaces (Docker)** — free, instant public URL, secrets as env vars:
+
+1. On [huggingface.co](https://huggingface.co/new-space), create a new **Space**
+   with **Docker** as the SDK.
+2. Point it at this repo (or upload the files) — the included `Dockerfile`
+   listens on port 7860, which HF Spaces requires.
+3. In **Settings → Secrets**, add:
+   - `APS_CLIENT_ID` and `APS_CLIENT_SECRET` (for real Revit conversion)
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` (optional, S3)
+4. The Space builds and serves the app at `https://<user>-<space>.hf.space`.
+
+**Render** — alternative Python host. Use the included `render.yaml` blueprint
+(or `Deploy to Render`), then set the same environment variables in the
+dashboard.
+
+> Note: free tiers sleep after inactivity (cold start ~1 min) and use ephemeral
+> storage, so jobs/outputs don't survive restarts — fine for a demo. Keep the
+> APS **secret** as a server-side env var; never commit it or put it in the
+> frontend.
+
 ## What it does
 
 | Step | Detail |

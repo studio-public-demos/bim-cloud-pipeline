@@ -22,6 +22,8 @@ from fastapi.staticfiles import StaticFiles
 
 import compare
 import pipeline
+import aps_adapter
+import storage
 from store import JobStore
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -59,7 +61,14 @@ ALLOWED = {".ifc", ".rvt", ".gltf", ".glb"}
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "bim-cloud-pipeline"}
+    return {
+        "status": "ok",
+        "service": "bim-cloud-pipeline",
+        "integrations": {
+            "aps": aps_adapter.APSAdapter().configured,
+            "s3": storage.S3Storage().configured,
+        },
+    }
 
 
 @app.get("/api/jobs")

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import json
+import tempfile
 import threading
 from pathlib import Path
 
@@ -28,11 +29,35 @@ from store import JobStore
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
-DATA_DIR = PROJECT_ROOT / "data"
-UPLOADS_DIR = DATA_DIR / "uploads"
 SAMPLES_DIR = PROJECT_ROOT / "samples"
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 DOCS_DIR = PROJECT_ROOT / "docs"
+
+
+def _resolve_data_dir() -> Path:
+    """Pick a writable directory for runtime data (jobs/outputs/uploads).
+
+    Prefers BIM_DATA_DIR, then the repo's data/ dir, falling back to the
+    system temp dir when the filesystem is read-only (e.g. cloud hosts).
+    """
+    env = os.environ.get("BIM_DATA_DIR")
+    if env:
+        return Path(env)
+    candidates = [PROJECT_ROOT / "data", Path(tempfile.gettempdir()) / "bim-cloud-pipeline"]
+    for cand in candidates:
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+            probe = cand / ".write_probe"
+            probe.write_text("ok")
+            probe.unlink()
+            return cand
+        except OSError:
+            continue
+    return candidates[-1]
+
+
+DATA_DIR = _resolve_data_dir()
+UPLOADS_DIR = DATA_DIR / "uploads"
 
 
 def _load_env_file(path: Path):

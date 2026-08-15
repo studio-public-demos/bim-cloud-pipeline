@@ -21,6 +21,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import tempfile
 import time
 import urllib.request
 import urllib.parse
@@ -182,7 +183,9 @@ class APSAdapter:
 
     def _download_derivative(self, urn, manifest, token, job_id, log) -> str:
         """Download the IFC derivative and return its local path."""
-        out_dir = os.path.join("data", "aps", job_id)
+        base = os.environ.get("BIM_DATA_DIR") or os.path.join(
+            tempfile.gettempdir(), "bim-cloud-pipeline")
+        out_dir = os.path.join(base, "aps", job_id)
         os.makedirs(out_dir, exist_ok=True)
 
         target = None

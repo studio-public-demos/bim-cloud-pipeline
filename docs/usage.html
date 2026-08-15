@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usage guide — BIM Cloud Pipeline</title>
+<style>
+:root { --bg:#0b0f17; --panel:#131a26; --border:#263349; --text:#e6edf7;
+  --muted:#8b98ad; --accent:#3b82f6; --accent2:#22d3ee; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.6; }
+.layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+.sidebar { background:var(--panel); border-right:1px solid var(--border);
+  padding:20px 14px; position:sticky; top:0; height:100vh; overflow:auto; }
+.sidebar .logo { font-weight:700; font-size:15px; margin-bottom:4px; }
+.sidebar .logo em { color:var(--accent2); font-style:normal; }
+.sidebar .sub { color:var(--muted); font-size:12px; margin-bottom:18px; }
+.nav a { display:block; color:var(--text); text-decoration:none; padding:9px 12px;
+  border-radius:8px; font-size:13.5px; margin-bottom:3px; min-height:38px; }
+.nav a:hover { background:var(--panel); }
+.nav a.active { background:linear-gradient(135deg,var(--accent),#2563eb); color:#fff; }
+.content { max-width:860px; padding:32px 40px 80px; }
+.content h1 { font-size:26px; margin-top:0; }
+.content h2 { font-size:20px; margin-top:32px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+.content h3 { font-size:16px; margin-top:24px; }
+.content code { background:var(--panel); padding:2px 6px; border-radius:5px;
+  font-size:13px; color:var(--accent2); font-family:ui-monospace,Consolas,monospace; }
+.content pre { background:#0a0e15; border:1px solid var(--border); border-radius:10px;
+  padding:14px 16px; overflow:auto; }
+.content pre code { background:none; color:#c7d2e0; padding:0; }
+.content table { border-collapse:collapse; width:100%; margin:14px 0; font-size:13.5px; }
+.content th,.content td { border:1px solid var(--border); padding:8px 11px; text-align:left; }
+.content th { background:var(--panel); }
+.content a { color:var(--accent); }
+.content blockquote { border-left:3px solid var(--accent); margin:14px 0; padding:4px 16px; color:var(--muted); }
+.content img, .mermaid svg { max-width:100%; height:auto; }
+.mermaid { background:#0e1522; border:1px solid var(--border); border-radius:10px;
+  padding:16px; margin:16px 0; overflow:auto; }
+@media (max-width:820px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar { position:static; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+  .content { padding:20px 18px 60px; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">BIM Cloud <em>Pipeline</em></div>
+    <div class="sub">Revit & IFC → GLB/GLTF + metadata</div>
+    <nav class="nav">
+      <a href="index.html">Overview</a>
+      <a href="usage.html" class="active">Usage guide</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="brief.html">Product brief</a>
+      <a href="criteria.html">Acceptance criteria</a>
+    </nav>
+  </aside>
+  <main class="content"><h1 id="using-the-bim-cloud-pipeline-poc">Using the BIM Cloud Pipeline POC</h1>
+<p>Step-by-step guide for running the POC and using it two ways: through the
+<strong>web dashboard</strong> (drag &amp; drop) and through the <strong>REST API</strong> (for integration
+into your own products).</p>
+<hr>
+<h2 id="1-prerequisites">1. Prerequisites</h2>
+<ul>
+<li><strong>Python 3.10+</strong> (verified on 3.14).</li>
+<li>Internet access (the 3D viewer loads Three.js from a CDN at runtime).</li>
+<li><strong>No BIM desktop software required</strong> — no Revit, no Autodesk account, no IFC
+  library. The POC ships a dependency-free IFC parser.</li>
+</ul>
+<p>The only Python dependencies are <code>fastapi</code>, <code>uvicorn</code>, <code>trimesh</code>, <code>numpy</code>.</p>
+<h2 id="2-install-run">2. Install &amp; run</h2>
+<pre><code class="language-bash"># from the bim-cloud-poc folder
+
+# (recommended) create an isolated environment
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS / Linux:
+source .venv/bin/activate
+
+# install dependencies
+pip install -r requirements.txt
+
+# start the API + dashboard
+python -m uvicorn main:app --host 127.0.0.1 --port 8765 --app-dir backend
+</code></pre>
+<p>Then open <strong>http://127.0.0.1:8765</strong> in a browser.</p>
+<blockquote>
+<p>To listen on all interfaces (e.g. for a phone/headset on your LAN), use
+<code>--host 0.0.0.0</code> and open <code>http://&lt;your-ip&gt;:8765</code>.</p>
+</blockquote>
+<h2 id="3-using-the-web-dashboard">3. Using the web dashboard</h2>
+<h3 id="31-run-the-bundled-sample-fastest">3.1 Run the bundled sample (fastest)</h3>
+<ol>
+<li>Click <strong>“Run bundled sample IFC”</strong>.</li>
+<li>A job appears under <strong>Processing jobs</strong> and moves through stages:
+   <code>Uploaded → Validated → Parsed → Geometry → Optimised → Metadata</code>.</li>
+<li>The detail panel opens automatically showing the live <strong>Logs</strong>, and when the
+   job completes, the <strong>3D viewer</strong> renders the building (drag to orbit, scroll
+   to zoom, right-drag to pan).</li>
+</ol>
+<h3 id="32-upload-your-own-file">3.2 Upload your own file</h3>
+<ol>
+<li>Drag a <code>.ifc</code>, <code>.rvt</code>, <code>.gltf</code>, or <code>.glb</code> file onto the dropzone, or click it
+   to browse.</li>
+<li>Watch the stages and logs update live.</li>
+<li>When <strong>Ready</strong>, use the three download buttons:
+   - <strong>model.glb</strong> — self-contained binary glTF (use this for web/AR/VR).
+   - <strong>model.gltf</strong> — text glTF (+ a <code>.bin</code> buffer) when you need to inspect
+     or diff the scene graph.
+   - <strong>metadata.json</strong> — the structured BIM data.</li>
+</ol>
+<h3 id="33-explore-the-tabs">3.3 Explore the tabs</h3>
+<ul>
+<li><strong>Logs</strong> — processing stages + timestamped log lines.</li>
+<li><strong>Metadata</strong> — full <code>metadata.json</code> pretty-printed.</li>
+<li><strong>API</strong> — ready-to-paste <code>curl</code> snippets for this exact job.</li>
+</ul>
+<h3 id="34-compare-two-models">3.4 Compare two models</h3>
+<ol>
+<li>Run (or upload) at least two jobs — e.g. the <strong>architecture</strong> and
+   <strong>structural</strong> samples.</li>
+<li>In the <strong>Compare models</strong> card, pick model A and model B from the dropdowns
+   and click <strong>Compare</strong>.</li>
+<li>Two 3D viewers load side-by-side, and a <strong>metadata diff</strong> shows:
+   - summary stats (elements / triangles) for each model,
+   - category counts with deltas (e.g. <code>beam +6</code>, <code>slab −3</code>),
+   - element-level <strong>added / removed / changed</strong> with material changes.</li>
+</ol>
+<p>The same diff is available via the API: <code>GET /api/compare/{idA}/{idB}</code>.</p>
+<h2 id="4-using-the-rest-api">4. Using the REST API</h2>
+<p>Base URL: <code>http://127.0.0.1:8765</code></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/jobs</code></td>
+<td>Upload a file (<code>multipart/form-data</code>, field <code>file</code>)</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/demo</code></td>
+<td>Run the bundled sample IFC</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/jobs</code></td>
+<td>List all jobs</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/jobs/{id}</code></td>
+<td>Job detail (status, stages, logs, outputs)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/jobs/{id}/download/model.glb</code></td>
+<td>Download binary glTF</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/jobs/{id}/download/model.gltf</code></td>
+<td>Download glTF</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/jobs/{id}/download/model.bin</code></td>
+<td>Download glTF buffer</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/jobs/{id}/download/metadata.json</code></td>
+<td>Download structured metadata</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/health</code></td>
+<td>Health check</td>
+</tr>
+</tbody>
+</table>
+<h3 id="41-upload-and-poll">4.1 Upload and poll</h3>
+<pre><code class="language-bash"># upload
+curl -X POST http://127.0.0.1:8765/api/jobs -F &quot;file=@MyModel.ifc&quot;
+# -&gt; {&quot;id&quot;: &quot;a1b2c3d4e5f6&quot;, &quot;filename&quot;: &quot;MyModel.ifc&quot;, &quot;format&quot;: &quot;ifc&quot;, &quot;status&quot;: &quot;queued&quot;, ...}
+
+# poll until &quot;status&quot; is &quot;completed&quot; or &quot;failed&quot;
+curl http://127.0.0.1:8765/api/jobs/a1b2c3d4e5f6
+</code></pre>
+<h3 id="42-download-derivatives">4.2 Download derivatives</h3>
+<pre><code class="language-bash">JOB=a1b2c3d4e5f6
+curl -o model.glb      http://127.0.0.1:8765/api/jobs/$JOB/download/model.glb
+curl -o model.gltf     http://127.0.0.1:8765/api/jobs/$JOB/download/model.gltf
+curl -o metadata.json  http://127.0.0.1:8765/api/jobs/$JOB/download/metadata.json
+</code></pre>
+<h3 id="43-full-python-client-example">4.3 Full Python client example</h3>
+<pre><code class="language-python">import json, time, urllib.request
+
+BASE = &quot;http://127.0.0.1:8765&quot;
+
+def upload(path):
+    boundary = &quot;----bim&quot;
+    with open(path, &quot;rb&quot;) as f:
+        data = f.read()
+    body = (f&quot;--{boundary}\r\n&quot;
+            f'Content-Disposition: form-data; name=&quot;file&quot;; filename=&quot;{path.split(&quot;/&quot;)[-1]}&quot;\r\n'
+            f&quot;Content-Type: application/octet-stream\r\n\r\n&quot;).encode() + data + f&quot;\r\n--{boundary}--\r\n&quot;.encode()
+    req = urllib.request.Request(f&quot;{BASE}/api/jobs&quot;, data=body,
+                                 headers={&quot;Content-Type&quot;: f&quot;multipart/form-data; boundary={boundary}&quot;})
+    return json.load(urllib.request.urlopen(req))
+
+def wait(job_id, timeout=60):
+    t0 = time.time()
+    while time.time() - t0 &lt; timeout:
+        job = json.load(urllib.request.urlopen(f&quot;{BASE}/api/jobs/{job_id}&quot;))
+        if job[&quot;status&quot;] in (&quot;completed&quot;, &quot;failed&quot;):
+            return job
+        time.sleep(0.5)
+    raise TimeoutError(&quot;job did not finish&quot;)
+
+job = upload(&quot;MyModel.ifc&quot;)
+done = wait(job[&quot;id&quot;])
+print(done[&quot;status&quot;], done[&quot;summary&quot;])
+for name, url in done[&quot;outputs&quot;].items():
+    urllib.request.urlretrieve(BASE + url, f&quot;{job['id']}_{name}&quot;)
+</code></pre>
+<h2 id="5-understanding-the-outputs">5. Understanding the outputs</h2>
+<h3 id="51-modelglb-modelgltf">5.1 <code>model.glb</code> / <code>model.gltf</code></h3>
+<ul>
+<li>Units are <strong>metres</strong> (converted from IFC millimetres — correct for glTF and
+  AR/VR).</li>
+<li>Each element keeps a <strong>vertex colour</strong> taken from its IFC material style, so
+  the model is readable without textures.</li>
+<li>Analytical volumes (spaces/zones) and georeference helper proxies are excluded
+  from the visual mesh but remain in the metadata.</li>
+<li>Load in any glTF viewer: Three.js, Babylon.js, <code>&lt;model-viewer&gt;</code>, Blender,
+  Unity/Unreal, AR Quick Look, etc.</li>
+</ul>
+<h3 id="52-metadatajson-schema">5.2 <code>metadata.json</code> — schema</h3>
+<pre><code class="language-jsonc">{
+  &quot;schema&quot;: &quot;bim-metadata&quot;,
+  &quot;version&quot;: &quot;1.0&quot;,
+  &quot;project&quot;: { &quot;globalId&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot;, &quot;units&quot;: { &quot;LENGTHUNIT&quot;: &quot;MILLI.METRE&quot; } },
+  &quot;spatialStructure&quot;: { &quot;sites&quot;: [], &quot;buildings&quot;: [], &quot;storeys&quot;: [], &quot;spaces&quot;: [], &quot;zones&quot;: [] },
+  &quot;elements&quot;: [
+    {
+      &quot;globalId&quot;: &quot;0OfZwWc8j9QP5uX8xPTxDH&quot;,
+      &quot;ifcType&quot;: &quot;IFCWALL&quot;,
+      &quot;category&quot;: &quot;wall&quot;,
+      &quot;name&quot;: &quot;house - outer wall - house left&quot;,
+      &quot;objectType&quot;: &quot;solidwall&quot;,
+      &quot;typeName&quot;: &quot;IFCWALLTYPE&quot;,
+      &quot;material&quot;: &quot;stone_sand-lime&quot;,
+      &quot;classification&quot;: null,
+      &quot;containedIn&quot;: &quot;00 groundfloor&quot;,
+      &quot;isVirtual&quot;: false,
+      &quot;properties&quot;: {
+        &quot;Pset_WallCommon&quot;: { &quot;IsExternal&quot;: true, &quot;LoadBearing&quot;: false },
+        &quot;Qto_WallBaseQuantities&quot;: { &quot;Length&quot;: 6000.0, &quot;Area&quot;: 20.3 }
+      },
+      &quot;geometry&quot;: { &quot;vertexCount&quot;: 24, &quot;triangleCount&quot;: 12, &quot;bbox&quot;: null }
+    }
+  ],
+  &quot;stats&quot;: { &quot;totalElements&quot;: 19, &quot;byCategory&quot;: { &quot;wall&quot;: 4 }, &quot;totalTriangles&quot;: 270 }
+}
+</code></pre>
+<p>Notes:</p>
+<ul>
+<li><code>properties</code> maps IFC <strong>property sets</strong> (<code>Pset_*</code>) and <strong>quantities</strong>
+  (<code>Qto_*</code>) to key/value pairs.</li>
+<li><code>containedIn</code> resolves the element's spatial container (storey/building/space).</li>
+<li><code>isVirtual</code> marks helper entities (origin/geo-reference proxies) you should
+  ignore for visualisation.</li>
+<li><code>geometry.vertices</code> / <code>triangles</code> are embedded for element-level access; the
+  full mesh is delivered as GLB/GLTF.</li>
+</ul>
+<h2 id="6-supported-formats-the-revit-route">6. Supported formats &amp; the Revit route</h2>
+<table>
+<thead>
+<tr>
+<th>Extension</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.ifc</code></td>
+<td>Fully parsed: real geometry + real metadata.</td>
+</tr>
+<tr>
+<td><code>.gltf</code> / <code>.glb</code></td>
+<td>Validated, normalised and re-exported through the same derivative pipeline.</td>
+</tr>
+<tr>
+<td><code>.rvt</code></td>
+<td>Recognised. Real conversion uses Autodesk APS (Model Derivative) — see below.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Revit <code>.rvt</code>:</strong></p>
+<ul>
+<li><strong>With credentials</strong> — set <code>APS_CLIENT_ID</code> and <code>APS_CLIENT_SECRET</code> and the
+  pipeline runs the real APS adapter (<code>backend/aps_adapter.py</code>): authenticate
+  (2-legged OAuth) → create a transient bucket → upload the RVT → translate to
+  SVF2 + glTF → download the glTF derivative and normalise it through the same
+  derivative pipeline.</li>
+<li><strong>Without credentials</strong> — <strong>demo fallback</strong>: processes a bundled
+  representative IFC and flags it clearly in the job logs and summary.</li>
+</ul>
+<h2 id="7-cloud-storage-configuration">7. Cloud storage &amp; configuration</h2>
+<h3 id="environment-variables">Environment variables</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Feature</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>APS_CLIENT_ID</code> + <code>APS_CLIENT_SECRET</code></td>
+<td>Real Revit conversion</td>
+<td>Enables the APS Model Derivative route for <code>.rvt</code></td>
+</tr>
+<tr>
+<td><code>AWS_ACCESS_KEY_ID</code> + <code>AWS_SECRET_ACCESS_KEY</code> + <code>AWS_S3_BUCKET</code></td>
+<td>Cloud storage</td>
+<td>Publishes outputs to S3 with presigned URLs</td>
+</tr>
+<tr>
+<td><code>AWS_REGION</code> (optional)</td>
+<td>Cloud storage</td>
+<td>S3 region (default <code>us-east-1</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s3-cloud-copies">S3 cloud copies</h3>
+<p>Set the AWS variables above and every completed job additionally uploads
+<code>model.glb</code>, <code>model.gltf</code>, <code>model.bin</code> and <code>metadata.json</code> to S3 under
+<code>jobs/&lt;id&gt;/...</code>. Presigned URLs appear:</p>
+<ul>
+<li>in the dashboard's download buttons (<code>☁ model.glb</code>, etc.), and</li>
+<li>in the API response as <code>outputs.cloud</code>.</li>
+</ul>
+<p>Without the variables, outputs remain on local disk and the pipeline behaves
+identically (local download endpoints).</p>
+<h3 id="example-powershell">Example (PowerShell)</h3>
+<pre><code class="language-powershell">$env:APS_CLIENT_ID = &quot;your-id&quot;
+$env:APS_CLIENT_SECRET = &quot;your-secret&quot;
+$env:AWS_ACCESS_KEY_ID = &quot;AKIA...&quot;
+$env:AWS_SECRET_ACCESS_KEY = &quot;secret&quot;
+$env:AWS_S3_BUCKET = &quot;my-bim-bucket&quot;
+python -m uvicorn main:app --port 8765 --app-dir backend
+</code></pre>
+<h2 id="8-integrating-into-your-own-product">8. Integrating into your own product</h2>
+<p>The dashboard is just one client. Build on the API:</p>
+<pre><code class="language-js">// create a job
+const fd = new FormData();
+fd.append(&quot;file&quot;, fileInput.files[0]);
+const job = await fetch(&quot;/api/jobs&quot;, { method: &quot;POST&quot;, body: fd }).then(r =&gt; r.json());
+
+// poll
+while (job.status === &quot;queued&quot; || job.status === &quot;processing&quot;) {
+  await new Promise(r =&gt; setTimeout(r, 800));
+  Object.assign(job, await fetch(`/api/jobs/${job.id}`).then(r =&gt; r.json()));
+}
+
+// feed a web/AR/VR viewer
+const modelUrl = job.outputs.modelGlb;      // -&gt; &lt;model-viewer src=...&gt;
+const meta = await fetch(job.outputs.metadata).then(r =&gt; r.json());
+</code></pre>
+<h2 id="9-troubleshooting">9. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModuleNotFoundError</code></td>
+<td>Run <code>pip install -r requirements.txt</code>.</td>
+</tr>
+<tr>
+<td>3D viewer stays blank / "Waiting for GLB"</td>
+<td>Job hasn't finished; check <strong>Logs</strong>. Requires internet for the Three.js CDN.</td>
+</tr>
+<tr>
+<td><code>Unsupported format '.zip'</code> (HTTP 400)</td>
+<td>Only <code>.ifc</code>, <code>.rvt</code>, <code>.gltf</code>, <code>.glb</code> are accepted.</td>
+</tr>
+<tr>
+<td><code>.rvt</code> job says "demo fallback"</td>
+<td>Expected without <code>APS_CLIENT_ID</code>/<code>APS_CLIENT_SECRET</code>.</td>
+</tr>
+<tr>
+<td>Port already in use</td>
+<td>Run with a different <code>--port</code> (e.g. <code>--port 9000</code>).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="10-limitations-poc-scope">10. Limitations (POC scope)</h2>
+<ul>
+<li>Geometry: tessellated facesets + extruded profiles (rectangle / arbitrary
+  closed / circle). Advanced BREP/CSG is out of scope.</li>
+<li>Suitable for: viewing, downstream web/AR/VR/digital-twin prototyping, and API
+  integration.</li>
+<li>Not suitable for: engineering analysis or legal documentation.</li>
+<li>No auth/multi-tenancy/billing — that's production work, intentionally left out.</li>
+</ul></main>
+</div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:'dark', securityLevel:'loose' });
+  document.querySelectorAll('pre code.language-mermaid').forEach(function(b){
+    var pre = b.parentElement;
+    var div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = b.textContent;
+    pre.replaceWith(div);
+  });
+  mermaid.run({ querySelector: '.mermaid' });
+</script>
+</body>
+</html>

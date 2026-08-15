@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Runtime-generated data (jobs, outputs, uploads, secrets)
+data/
+*.db
+*.sqlite3
+
+# Studio internal delivery state (not part of the engineering project)
+PRODUCT_STATE.yaml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

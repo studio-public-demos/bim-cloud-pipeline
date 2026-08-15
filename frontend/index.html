@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BIM Cloud Pipeline — Revit/IFC to GLB & Metadata</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◨</span>
+      <span class="brand-text">BIM Cloud <em>Pipeline</em></span>
+    </div>
+    <span class="tagline">Revit & IFC → GLB/GLTF + structured metadata, one pipeline</span>
+  </header>
+
+  <main>
+    <!-- Upload -->
+    <section class="card upload-card">
+      <h2>Upload a model</h2>
+      <p class="muted">Drop a Revit (<code>.rvt</code>), IFC (<code>.ifc</code>) or glTF (<code>.gltf/.glb</code>) file.
+        It is processed in the cloud into an optimised GLB/GLTF plus structured BIM metadata JSON.</p>
+
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload file">
+        <input type="file" id="fileInput" accept=".ifc,.rvt,.gltf,.glb" hidden />
+        <div class="dropzone-inner">
+          <div class="dz-icon">⬆</div>
+          <div class="dz-title">Drag & drop a file here</div>
+          <div class="dz-sub">or <span class="link">browse</span> — .ifc · .rvt · .gltf · .glb</div>
+        </div>
+      </div>
+
+      <div class="demo-row">
+        <button id="demoBtn" class="btn btn-primary">▶ Run architecture sample</button>
+        <button id="demoStructBtn" class="btn">▶ Run structural sample</button>
+      </div>
+    </section>
+
+    <!-- Pipeline value -->
+    <section class="value-grid" aria-label="capabilities">
+      <div class="chip">Web</div>
+      <div class="chip">Mobile</div>
+      <div class="chip">AR / VR</div>
+      <div class="chip">XR</div>
+      <div class="chip">Digital twin</div>
+      <div class="chip">Real-time AEC</div>
+    </section>
+
+    <!-- Jobs -->
+    <section class="card">
+      <div class="section-head">
+        <h2>Processing jobs</h2>
+        <span id="jobCount" class="muted small"></span>
+      </div>
+      <div id="jobs" class="jobs"></div>
+    </section>
+
+    <!-- Compare -->
+    <section class="card">
+      <div class="section-head">
+        <h2>Compare models</h2>
+        <span class="muted small">side-by-side 3D + metadata diff</span>
+      </div>
+      <div class="compare-controls">
+        <select id="compareA" class="compare-select" aria-label="model A"></select>
+        <span class="vs">vs</span>
+        <select id="compareB" class="compare-select" aria-label="model B"></select>
+        <button id="compareBtn" class="btn btn-primary">Compare</button>
+      </div>
+      <div id="compareResult" class="compare-result hidden">
+        <div class="compare-viewers">
+          <div class="compare-viewer-wrap">
+            <div class="compare-label" id="compareLabelA">—</div>
+            <div class="viewer compare-viewer" id="viewerA"><div class="viewer-placeholder">Model A</div></div>
+          </div>
+          <div class="compare-viewer-wrap">
+            <div class="compare-label" id="compareLabelB">—</div>
+            <div class="viewer compare-viewer" id="viewerB"><div class="viewer-placeholder">Model B</div></div>
+          </div>
+        </div>
+        <div id="diffStats" class="diff-stats"></div>
+        <div id="diffTables" class="diff-tables"></div>
+      </div>
+    </section>
+
+    <!-- Detail -->
+    <section id="detail" class="card detail-card hidden">
+      <div class="detail-head">
+        <div>
+          <h2 id="detailName">Job</h2>
+          <div class="badges" id="detailBadges"></div>
+        </div>
+        <button id="closeDetail" class="btn btn-ghost" aria-label="close">✕</button>
+      </div>
+
+      <div class="detail-body">
+        <div class="viewer-col">
+          <div id="viewer" class="viewer">
+            <div id="viewerPlaceholder" class="viewer-placeholder">3D viewer</div>
+          </div>
+          <div class="downloads" id="downloads"></div>
+        </div>
+
+        <div class="meta-col">
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="logs" role="tab">Logs</button>
+            <button class="tab" data-tab="metadata" role="tab">Metadata</button>
+            <button class="tab" data-tab="api" role="tab">API</button>
+          </div>
+          <div id="tab-logs" class="tab-panel active">
+            <div class="stages" id="stages"></div>
+            <pre id="logs" class="logs"></pre>
+          </div>
+          <div id="tab-metadata" class="tab-panel">
+            <pre id="metadata" class="logs"></pre>
+          </div>
+          <div id="tab-api" class="tab-panel">
+            <div class="api-block">
+              <h3>REST endpoints</h3>
+              <pre id="apiSnippet" class="logs"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://nebulacloud.studio" target="_blank" rel="noopener">Built with NebulaCloud Studio</a>
+  </footer>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceptance criteria — BIM Cloud Pipeline</title>
+<style>
+:root { --bg:#0b0f17; --panel:#131a26; --border:#263349; --text:#e6edf7;
+  --muted:#8b98ad; --accent:#3b82f6; --accent2:#22d3ee; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.6; }
+.layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+.sidebar { background:var(--panel); border-right:1px solid var(--border);
+  padding:20px 14px; position:sticky; top:0; height:100vh; overflow:auto; }
+.sidebar .logo { font-weight:700; font-size:15px; margin-bottom:4px; }
+.sidebar .logo em { color:var(--accent2); font-style:normal; }
+.sidebar .sub { color:var(--muted); font-size:12px; margin-bottom:18px; }
+.nav a { display:block; color:var(--text); text-decoration:none; padding:9px 12px;
+  border-radius:8px; font-size:13.5px; margin-bottom:3px; min-height:38px; }
+.nav a:hover { background:var(--panel); }
+.nav a.active { background:linear-gradient(135deg,var(--accent),#2563eb); color:#fff; }
+.content { max-width:860px; padding:32px 40px 80px; }
+.content h1 { font-size:26px; margin-top:0; }
+.content h2 { font-size:20px; margin-top:32px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+.content h3 { font-size:16px; margin-top:24px; }
+.content code { background:var(--panel); padding:2px 6px; border-radius:5px;
+  font-size:13px; color:var(--accent2); font-family:ui-monospace,Consolas,monospace; }
+.content pre { background:#0a0e15; border:1px solid var(--border); border-radius:10px;
+  padding:14px 16px; overflow:auto; }
+.content pre code { background:none; color:#c7d2e0; padding:0; }
+.content table { border-collapse:collapse; width:100%; margin:14px 0; font-size:13.5px; }
+.content th,.content td { border:1px solid var(--border); padding:8px 11px; text-align:left; }
+.content th { background:var(--panel); }
+.content a { color:var(--accent); }
+.content blockquote { border-left:3px solid var(--accent); margin:14px 0; padding:4px 16px; color:var(--muted); }
+.content img, .mermaid svg { max-width:100%; height:auto; }
+.mermaid { background:#0e1522; border:1px solid var(--border); border-radius:10px;
+  padding:16px; margin:16px 0; overflow:auto; }
+@media (max-width:820px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar { position:static; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+  .content { padding:20px 18px 60px; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">BIM Cloud <em>Pipeline</em></div>
+    <div class="sub">Revit & IFC → GLB/GLTF + metadata</div>
+    <nav class="nav">
+      <a href="index.html">Overview</a>
+      <a href="usage.html">Usage guide</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="brief.html">Product brief</a>
+      <a href="criteria.html" class="active">Acceptance criteria</a>
+    </nav>
+  </aside>
+  <main class="content"><h1 id="acceptance_criteria-bim-cloud-pipeline-poc">ACCEPTANCE_CRITERIA — BIM Cloud Pipeline POC</h1>
+<p>Each criterion is testable and mapped to a verification method.</p>
+<h2 id="functional">Functional</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Criterion</th>
+<th>Verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>Uploading a <code>.ifc</code> file creates a job and processes it to completion</td>
+<td>POST /api/jobs (multipart) → status <code>completed</code></td>
+</tr>
+<tr>
+<td>A2</td>
+<td>Pipeline emits <code>model.glb</code>, <code>model.gltf</code> (+ <code>.bin</code>) and <code>metadata.json</code></td>
+<td>download endpoints return 200 with correct content-type</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>GLB is a valid binary glTF (viewable in Three.js GLTFLoader)</td>
+<td>in-browser viewer renders geometry</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>metadata.json is valid JSON with project, elements, properties, quantities, geometry stats</td>
+<td>parse + inspect fields</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>Elements carry GlobalId, name, category, material, property sets, quantities, containment</td>
+<td>sample wall/slab show <code>Pset_*</code> / <code>Qto_*</code></td>
+</tr>
+<tr>
+<td>A6</td>
+<td>Revit <code>.rvt</code> is recognised; without APS credentials it uses the documented demo fallback</td>
+<td>POST a <code>.rvt</code> → completed with fallback note</td>
+</tr>
+<tr>
+<td>A7</td>
+<td>Unsupported formats are rejected with a clear message</td>
+<td>POST <code>.zip</code> → 400</td>
+</tr>
+<tr>
+<td>A8</td>
+<td>One-click demo runs the bundled sample end-to-end</td>
+<td>POST /api/demo → completed</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ux">UX</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Criterion</th>
+<th>Verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U1</td>
+<td>Dashboard shows live job list with status</td>
+<td>poll UI</td>
+</tr>
+<tr>
+<td>U2</td>
+<td>Detail view shows stages, logs, downloads, API snippets</td>
+<td>open a job</td>
+</tr>
+<tr>
+<td>U3</td>
+<td>3D viewer loads the GLB and auto-frames</td>
+<td>browser screenshot</td>
+</tr>
+<tr>
+<td>U4</td>
+<td>UI is responsive at 320/375/768/1280 px, no horizontal overflow</td>
+<td>screenshot at widths</td>
+</tr>
+<tr>
+<td>U5</td>
+<td>Touch targets ≥ 44 px</td>
+<td>button/dropzone styling</td>
+</tr>
+</tbody>
+</table>
+<h2 id="non-functional">Non-functional</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Criterion</th>
+<th>Verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N1</td>
+<td>No blocking console errors</td>
+<td>browser console</td>
+</tr>
+<tr>
+<td>N2</td>
+<td>Pipeline is idempotent and re-runnable</td>
+<td>run demo twice</td>
+</tr>
+<tr>
+<td>N3</td>
+<td>Real open-source data used (no dummy data)</td>
+<td>samples provenance in README</td>
+</tr>
+</tbody>
+</table>
+<h2 id="out-of-scope-for-poc">Out of scope for POC</h2>
+<ul>
+<li>Live Autodesk APS (Forge/Model Derivative) integration — stubbed, requires
+  <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code>.</li>
+<li>Multi-tenant auth, billing, cloud storage (S3/GCS).</li>
+<li>Full IFC4 geometry engines (BREP/CSG) — tessellated + extruded profiles only.</li>
+</ul></main>
+</div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:'dark', securityLevel:'loose' });
+  document.querySelectorAll('pre code.language-mermaid').forEach(function(b){
+    var pre = b.parentElement;
+    var div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = b.textContent;
+    pre.replaceWith(div);
+  });
+  mermaid.run({ querySelector: '.mermaid' });
+</script>
+</body>
+</html>

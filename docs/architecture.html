@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — BIM Cloud Pipeline</title>
+<style>
+:root { --bg:#0b0f17; --panel:#131a26; --border:#263349; --text:#e6edf7;
+  --muted:#8b98ad; --accent:#3b82f6; --accent2:#22d3ee; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.6; }
+.layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+.sidebar { background:var(--panel); border-right:1px solid var(--border);
+  padding:20px 14px; position:sticky; top:0; height:100vh; overflow:auto; }
+.sidebar .logo { font-weight:700; font-size:15px; margin-bottom:4px; }
+.sidebar .logo em { color:var(--accent2); font-style:normal; }
+.sidebar .sub { color:var(--muted); font-size:12px; margin-bottom:18px; }
+.nav a { display:block; color:var(--text); text-decoration:none; padding:9px 12px;
+  border-radius:8px; font-size:13.5px; margin-bottom:3px; min-height:38px; }
+.nav a:hover { background:var(--panel); }
+.nav a.active { background:linear-gradient(135deg,var(--accent),#2563eb); color:#fff; }
+.content { max-width:860px; padding:32px 40px 80px; }
+.content h1 { font-size:26px; margin-top:0; }
+.content h2 { font-size:20px; margin-top:32px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+.content h3 { font-size:16px; margin-top:24px; }
+.content code { background:var(--panel); padding:2px 6px; border-radius:5px;
+  font-size:13px; color:var(--accent2); font-family:ui-monospace,Consolas,monospace; }
+.content pre { background:#0a0e15; border:1px solid var(--border); border-radius:10px;
+  padding:14px 16px; overflow:auto; }
+.content pre code { background:none; color:#c7d2e0; padding:0; }
+.content table { border-collapse:collapse; width:100%; margin:14px 0; font-size:13.5px; }
+.content th,.content td { border:1px solid var(--border); padding:8px 11px; text-align:left; }
+.content th { background:var(--panel); }
+.content a { color:var(--accent); }
+.content blockquote { border-left:3px solid var(--accent); margin:14px 0; padding:4px 16px; color:var(--muted); }
+.content img, .mermaid svg { max-width:100%; height:auto; }
+.mermaid { background:#0e1522; border:1px solid var(--border); border-radius:10px;
+  padding:16px; margin:16px 0; overflow:auto; }
+@media (max-width:820px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar { position:static; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+  .content { padding:20px 18px 60px; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">BIM Cloud <em>Pipeline</em></div>
+    <div class="sub">Revit & IFC → GLB/GLTF + metadata</div>
+    <nav class="nav">
+      <a href="index.html">Overview</a>
+      <a href="usage.html">Usage guide</a>
+      <a href="architecture.html" class="active">Architecture</a>
+      <a href="brief.html">Product brief</a>
+      <a href="criteria.html">Acceptance criteria</a>
+    </nav>
+  </aside>
+  <main class="content"><h1 id="architecture-bim-cloud-pipeline">Architecture — BIM Cloud Pipeline</h1>
+<h2 id="system-overview">System overview</h2>
+<pre><code class="language-mermaid">flowchart TB
+    U[&quot;User / BIM developer&quot;] --&gt;|&quot;HTTPS (localhost)&quot;| FE[&quot;Frontend dashboard&lt;br/&gt;(index.html + app.js + Three.js)&quot;]
+
+    subgraph APP[&quot;BIM Cloud Pipeline (FastAPI)&quot;]
+        API[&quot;REST API&lt;br/&gt;main.py&quot;]
+        STORE[&quot;JobStore&lt;br/&gt;store.py (JSON persistence)&quot;]
+        PIPE[&quot;pipeline.run_pipeline()&lt;br/&gt;pipeline.py&quot;]
+    end
+
+    FE --&gt;|&quot;fetch /api/*&quot;| API
+    API --&gt; STORE
+    API --&gt;|&quot;background thread&quot;| PIPE
+
+    subgraph CORE[&quot;Processing core&quot;]
+        PARSE[&quot;ifc_parser.py&lt;br/&gt;(dependency-free STEP parser)&quot;]
+        MESH[&quot;glb_builder.py&lt;br/&gt;(trimesh -&gt; GLB/GLTF)&quot;]
+    end
+
+    PIPE --&gt; PARSE --&gt; MESH
+
+    PARSE --&gt;|&quot;semantic model&quot;| META[&quot;metadata.json&quot;]
+    MESH --&gt;|&quot;model.glb / model.gltf&quot;| OUT[&quot;outputs/&lt;job&gt;/&quot;]
+
+    STORE --&gt;|&quot;job.json&lt;br/&gt;(status, stages, logs)&quot;| JOBS[&quot;data/jobs/&quot;]
+    OUT --&gt; DL[&quot;Download endpoints&quot;]
+    DL --&gt; FE
+
+    IN[&quot;Upload: .ifc .rvt .gltf .glb&quot;] --&gt; API
+    SAMPLE[&quot;samples/&lt;br/&gt;Building-Architecture.ifc&quot;] --&gt; PIPE
+</code></pre>
+<h2 id="format-routing">Format routing</h2>
+<pre><code class="language-mermaid">flowchart LR
+    UP[&quot;Uploaded file&quot;] --&gt; DET[&quot;detect_format()&quot;]
+    DET --&gt;|&quot;.ifc&quot;| IFC[&quot;parse IFC (real geometry + metadata)&quot;]
+    DET --&gt;|&quot;.gltf / .glb&quot;| GLT[&quot;normalise &amp; re-export&quot;]
+    DET --&gt;|&quot;.rvt&quot;| RVT{&quot;APS credentials set?&quot;}
+    RVT --&gt;|&quot;yes&quot;| APS[&quot;Autodesk APS&lt;br/&gt;Model Derivative (stub)&quot;]
+    RVT --&gt;|&quot;no&quot;| FALLBACK[&quot;demo fallback:&lt;br/&gt;bundled representative IFC&quot;]
+    IFC --&gt; M[&quot;build_mesh() + metadata.json&quot;]
+    GLT --&gt; M
+    APS --&gt; M
+    FALLBACK --&gt; M
+    M --&gt; O[&quot;model.glb + model.gltf + metadata.json&quot;]
+</code></pre>
+<h2 id="ascii-data-flow">ASCII data flow</h2>
+<pre><code> file ──► POST /api/jobs ──► JobStore.create() ──► background thread
+                                                    │
+                                                    ▼
+                                        pipeline.run_pipeline()
+                                          ├─ uploaded    (log)
+                                          ├─ validated   (format detect)
+                                          ├─ parsed      (ifc_parser.extract_model)
+                                          ├─ geometry    (glb_builder.build_mesh)
+                                          ├─ optimized   (export .glb / .gltf)
+                                          └─ metadata    (write metadata.json)
+                                                    │
+                                                    ▼
+                                     outputs/&lt;job&gt;/model.glb
+                                     outputs/&lt;job&gt;/model.gltf (+.bin)
+                                     outputs/&lt;job&gt;/metadata.json
+                                                    │
+                                                    ▼
+                          GET /api/jobs/{id}/download/{file} ──► user
+</code></pre>
+<h2 id="components">Components</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Responsibility</th>
+<th>Dependencies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>REST API</td>
+<td><code>backend/main.py</code></td>
+<td>Upload, job CRUD, downloads, static dashboard</td>
+<td>fastapi, uvicorn</td>
+</tr>
+<tr>
+<td>Job store</td>
+<td><code>backend/store.py</code></td>
+<td>In-memory registry + JSON persistence</td>
+<td>stdlib</td>
+</tr>
+<tr>
+<td>Pipeline</td>
+<td><code>backend/pipeline.py</code></td>
+<td>Staged, logged processing + format routing</td>
+<td>trimesh</td>
+</tr>
+<tr>
+<td>IFC parser</td>
+<td><code>backend/ifc_parser.py</code></td>
+<td>STEP tokenizer → entities → semantic model (geometry + metadata)</td>
+<td>none</td>
+</tr>
+<tr>
+<td>GLB builder</td>
+<td><code>backend/glb_builder.py</code></td>
+<td>mm→m conversion, per-element vertex colours, GLB/GLTF export</td>
+<td>trimesh, numpy</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td><code>frontend/</code></td>
+<td>Upload UI, live job tracking, Three.js GLB viewer, metadata/API tabs</td>
+<td>Three.js (CDN)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="key-design-decisions">Key design decisions</h2>
+<ol>
+<li><strong>No BIM runtime dependency.</strong> IFC parsing is done with a purpose-built STEP
+   parser, so the pipeline runs anywhere Python runs — no Revit, no Autodesk
+   account, no IFC engine to install.</li>
+<li><strong>Two outputs, one pipeline.</strong> The same parse produces both the optimised
+   mesh (GLB/GLTF) and the structured metadata (JSON), so geometry and semantics
+   stay consistent.</li>
+<li><strong>Async jobs with live progress.</strong> Processing runs in a background thread;
+   the store records stages and logs that the dashboard polls.</li>
+<li><strong>Format-routed processing.</strong> <code>.ifc</code> is parsed natively; <code>.gltf/.glb</code> is
+   normalised; <code>.rvt</code> routes to the APS adapter (or an explicit demo fallback).</li>
+<li><strong>Faithful units.</strong> IFC millimetres are converted to metres (glTF standard)
+   so outputs drop straight into AR/VR and web viewers.</li>
+</ol>
+<h2 id="extension-points-now-implemented">Extension points (now implemented)</h2>
+<ul>
+<li><strong>Autodesk APS adapter</strong> — <em>implemented</em> (<code>backend/aps_adapter.py</code>). Real
+  <code>.rvt</code> conversion via APS Model Derivative (OAuth → bucket → translate →
+  glTF download). Activates when <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code> are set.</li>
+<li><strong>Cloud storage</strong> — <em>implemented</em> (<code>backend/storage.py</code>). <code>S3Storage</code> uploads
+  outputs and returns presigned URLs when AWS credentials + <code>AWS_S3_BUCKET</code> are
+  set; <code>LocalStorage</code> is the default.</li>
+<li><strong>Compare view</strong> — <em>implemented</em>. <code>GET /api/compare/{idA}/{idB}</code> diffs two
+  models (<code>backend/compare.py</code>) and the dashboard renders side-by-side viewers
+  plus a metadata diff table.</li>
+</ul></main>
+</div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:'dark', securityLevel:'loose' });
+  document.querySelectorAll('pre code.language-mermaid').forEach(function(b){
+    var pre = b.parentElement;
+    var div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = b.textContent;
+    pre.replaceWith(div);
+  });
+  mermaid.run({ querySelector: '.mermaid' });
+</script>
+</body>
+</html>

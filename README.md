@@ -1,5 +1,9 @@
 # BIM Cloud Pipeline
 
+[![CI](https://github.com/studio-public-demos/bim-cloud-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/studio-public-demos/bim-cloud-pipeline/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://www.python.org/)
+
 Upload **Revit / IFC** files, process them in the cloud, and download
 **GLB / GLTF** 3D models + **structured metadata JSON** for web, mobile,
 AR/VR and digital-twin applications.

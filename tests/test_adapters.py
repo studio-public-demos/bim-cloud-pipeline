@@ -15,10 +15,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 import aps_adapter
 import storage
 
+IFC_SAMPLE = b"ISO-10303-21;\nHEADER;\nFILE_SCHEMA(('IFC4'));\nENDSEC;\nDATA;\nENDSEC;\nEND-ISO-10303-21;\n"
+
 
 class _FakeResp:
-    def __init__(self, payload):
+    def __init__(self, payload, headers=None):
         self._payload = payload
+        self.headers = headers or {}
 
     def __enter__(self):
         return self
@@ -36,50 +39,62 @@ def test_to_urn():
     print("ok to_urn")
 
 
-def test_aps_flow_gltf():
+def test_aps_flow_ifc():
     adapter = aps_adapter.APSAdapter(client_id="id", client_secret="secret")
     assert adapter.configured
 
     def fake_post_form(url, data, headers=None):
-        assert "authenticate" in url
+        assert "token" in url
         return _FakeResp(json.dumps({"access_token": "tok"}).encode())
 
     def fake_post_json(url, payload, token):
-        if "buckets" in url and not url.endswith("/objects"):
+        if url.endswith("oss/v2/buckets"):
             return _FakeResp(b"{}")
-        if "designdata/job" in url:
-            return _FakeResp(json.dumps({"result": "created"}).encode())
+        if url.endswith("/signeds3upload"):  # complete upload
+            return _FakeResp(json.dumps({
+                "objectId": "urn:adsk.objects:os.object:bk/model.rvt",
+                "bucketKey": "bk",
+            }).encode())
+        if "designdata/job" in url:  # translate job
+            return _FakeResp(json.dumps({"result": "success"}).encode())
         raise AssertionError(url)
 
-    def fake_put(url, data, token):
-        return _FakeResp(json.dumps({
-            "objectId": "urn:adsk.objects:os.object:bk/model.rvt",
-            "bucketKey": "bk",
-        }).encode())
-
-    manifest = {"status": "success", "derivatives": [
-        {"urn": "urn:adsk.viewing:fs.file:dXJu/gltf", "role": "autodesk.gltf"},
-    ]}
-
     def fake_get(url, token):
-        if url.endswith("/manifest"):
-            return _FakeResp(json.dumps(manifest).encode())
-        return _FakeResp(b"gltf-bytes")
+        if "/signeds3upload" in url:  # request signed upload URL
+            return _FakeResp(json.dumps({
+                "uploadKey": "upkey", "urls": ["https://s3.example/x"],
+                "uploadExpiration": "2099-01-01T00:00:00Z",
+            }).encode())
+        if url.endswith("/manifest"):  # manifest poll
+            return _FakeResp(json.dumps({
+                "status": "success", "progress": "complete",
+                "derivatives": [{"outputType": "ifc", "status": "success", "children": [
+                    {"type": "resource", "role": "ifc", "urn": "urn:adsk.viewing:fs.file:x/output/IFC/model.ifc"}
+                ]}],
+            }).encode())
+        # derivative download
+        return _FakeResp(IFC_SAMPLE)
+
+    def fake_put_s3(url, data):
+        assert url.startswith("https://s3.example")
+        return _FakeResp(b"", headers={"ETag": '"abc123"'})
 
     with mock.patch.object(adapter, "_post_form", fake_post_form), \
          mock.patch.object(adapter, "_post_json", fake_post_json), \
-         mock.patch.object(adapter, "_put", fake_put), \
-         mock.patch.object(adapter, "_get", fake_get):
+         mock.patch.object(adapter, "_get", fake_get), \
+         mock.patch.object(adapter, "_put_s3", fake_put_s3):
         with tempfile.TemporaryDirectory() as td:
             rvt = os.path.join(td, "model.rvt")
             with open(rvt, "wb") as fh:
                 fh.write(b"rvt")
             logs = []
             out = adapter.convert(rvt, "job1", logs.append)
-            assert out.endswith("model.gltf")
-            assert any("glTF derivative" in l for l in logs)
+            assert out.endswith("model.ifc")
+            with open(out, "rb") as fh:
+                assert fh.read() == IFC_SAMPLE
+            assert any("IFC derivative" in l for l in logs)
 
-    print("ok aps flow (gltf)")
+    print("ok aps flow (ifc)")
 
 
 def test_aps_unconfigured():
@@ -123,7 +138,7 @@ def test_s3_publish_mocked():
 
 if __name__ == "__main__":
     test_to_urn()
-    test_aps_flow_gltf()
+    test_aps_flow_ifc()
     test_aps_unconfigured()
     test_storage_local_fallback()
     test_s3_publish_mocked()

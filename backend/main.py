@@ -32,6 +32,22 @@ SAMPLES_DIR = PROJECT_ROOT / "samples"
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 DOCS_DIR = PROJECT_ROOT / "docs"
 
+
+def _load_env_file(path: Path):
+    """Load KEY=VALUE pairs from a .env file into the environment (gitignored)."""
+    if not path.is_file():
+        return
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
+
+
+_load_env_file(PROJECT_ROOT / ".env")
+
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 store = JobStore(str(DATA_DIR))

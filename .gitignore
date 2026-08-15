@@ -11,6 +11,11 @@ data/
 *.db
 *.sqlite3
 
+# Local secrets (never commit)
+.env
+.env.*
+*.env
+
 # Studio internal delivery state (not part of the engineering project)
 PRODUCT_STATE.yaml
 

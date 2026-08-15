@@ -160,9 +160,10 @@ def _process_rvt(job_id, src_path, store, log, stage, samples_dir):
         log("Autodesk APS credentials found -> Model Derivative route")
         stage("validated", "done", "Revit (RVT) recognised")
         try:
-            gltf_path = aps.convert(src_path, job_id, log)
-            stage("parsed", "done", "APS Model Derivative complete")
-            _process_gltf(job_id, gltf_path, store, log, stage)
+            ifc_path = aps.convert(src_path, job_id, log)
+            stage("parsed", "done", "APS translated RVT -> IFC")
+            log("Feeding APS IFC output through the native parser...")
+            _process_ifc(job_id, ifc_path, store, log, stage)
             store.update(job_id, format="rvt")
             return
         except Exception as exc:  # noqa: BLE001

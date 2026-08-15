@@ -20,6 +20,9 @@ data** (buildingSMART) and an automated test suite.
 **Documentation:**
 - [USAGE.md](USAGE.md) — full how-to guide: install, dashboard walkthrough,
   REST API, output schema, integration examples, troubleshooting.
+- **Browsable docs:** [studio-public-demos.github.io/bim-cloud-pipeline](https://studio-public-demos.github.io/bim-cloud-pipeline/) —
+  usage guide, architecture (with diagrams), product brief, and acceptance
+  criteria, deployed to GitHub Pages.
 
 ## Quick start
 

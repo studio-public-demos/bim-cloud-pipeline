@@ -24,7 +24,10 @@ def _bool(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
     if raw is None:
         return default
-    return raw.strip().lower() in ("1", "true", "yes", "on")
+    raw = raw.strip()
+    if not raw:  # empty/whitespace env vars are treated as unset
+        return default
+    return raw.lower() in ("1", "true", "yes", "on")
 
 
 def _int(name: str, default: int) -> int:

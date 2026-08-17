@@ -47,6 +47,11 @@ def test_config_hosted_default_on():
     with mock.patch.dict(os.environ, {"RENDER": "true", "PUBLIC_DEMO_MODE": "0"}, clear=True):
         importlib.reload(config)
         assert config.PUBLIC_DEMO_MODE is False
+    # Empty env var (e.g. Render blueprint declares it but leaves it unset)
+    # must NOT override the safe default.
+    with mock.patch.dict(os.environ, {"RENDER": "true", "PUBLIC_DEMO_MODE": ""}, clear=True):
+        importlib.reload(config)
+        assert config.PUBLIC_DEMO_MODE is True
     importlib.reload(config)
     print("ok config hosted default on")
 

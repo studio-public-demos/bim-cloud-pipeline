@@ -103,8 +103,9 @@ no single, simple pipeline that delivers both.</p>
 <li>Job status, stage progress and logs are live.</li>
 <li>3D model is viewable in-browser; metadata is structured and queryable.</li>
 <li>Revit <code>.rvt</code> route is clearly handled: real Autodesk APS adapter
-  (implemented, unit-tested with mocks, not yet live-validated) plus a demo
-  fallback when credentials are absent.</li>
+  (implemented, unit-tested with mocks, not yet live-validated); without APS
+  credentials the job fails with a clear error (an uploaded file is never
+  replaced by a bundled sample).</li>
 <li>Responsive UI; no blocking console errors.</li>
 </ul>
 <h2 id="capability-status">Capability status</h2>

@@ -13,7 +13,7 @@ Each criterion is testable and mapped to a verification method.
 | A3 | GLB is a valid binary glTF (viewable in Three.js GLTFLoader) | in-browser viewer renders geometry | ✅ |
 | A4 | metadata.json is valid JSON with project, elements, properties, quantities, geometry stats | parse + inspect fields | ✅ |
 | A5 | Elements carry GlobalId, name, category, material, property sets, quantities, containment | sample wall/slab show `Pset_*` / `Qto_*` | ✅ |
-| A6 | Revit `.rvt` is recognised; without APS credentials it uses the documented demo fallback | POST a `.rvt` → completed with fallback note | ✅ |
+| A6 | Revit `.rvt` is recognised; without APS credentials it fails with a clear error (no sample substitution) | POST a `.rvt` → `failed` with "requires Autodesk APS credentials" | ✅ |
 | A7 | Unsupported formats are rejected with a clear message | POST `.zip` → 400 | ✅ |
 | A8 | One-click demo runs the bundled sample end-to-end | POST /api/demo → completed | ✅ |
 | A9 | Public demo mode disables arbitrary uploads and exposes only bundled samples | `PUBLIC_DEMO_MODE=1` → `POST /api/jobs` returns 403, `/api/demo/*` works | ✅ |

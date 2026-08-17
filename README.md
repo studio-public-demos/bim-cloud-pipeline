@@ -126,8 +126,9 @@ detects `.rvt` and:
   to a transient bucket → translate to an **IFC derivative** (Revit's own IFC
   export) → download the IFC → feed it through the **native IFC pipeline**
   (`ifc_parser` + `glb_builder`) to produce GLB/GLTF + metadata;
-- otherwise → **demo fallback**: processes a bundled representative IFC and
-  flags it clearly in the logs and summary.
+- otherwise → the job **fails with a clear error** telling the user to set APS
+  credentials (or upload IFC/glTF/GLB). The pipeline never substitutes a
+  bundled sample for an uploaded file.
 
 Canonical `.rvt` workflow:
 
@@ -186,7 +187,6 @@ This section distinguishes what is *implemented* vs *mocked/unit-tested* vs
 | Job tracking, downloads, REST API | **Live-validated** — exercised via the dashboard and `curl` |
 | Responsive dashboard + Three.js viewer | **Live-validated** — 320/375/768/1280 px, WebGL renders both samples |
 | Revit `.rvt` → APS Model Derivative | **Implemented + unit-tested (mocked)** — real adapter code, verified with mocks; *not live-validated* (requires a live APS account) |
-| Revit `.rvt` demo fallback (no credentials) | **Implemented** — deterministic substitute of a bundled representative IFC, clearly flagged |
 | S3 cloud storage (presigned URLs) | **Implemented + unit-tested (mocked)** — *not live-validated* (requires live AWS credentials); falls back to local disk |
 
 ## Sample data

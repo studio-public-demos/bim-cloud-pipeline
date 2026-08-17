@@ -97,11 +97,10 @@ body { margin:0; background:var(--bg); color:var(--text);
     DET --&gt;|&quot;.gltf / .glb&quot;| GLT[&quot;normalise &amp; re-export&quot;]
     DET --&gt;|&quot;.rvt&quot;| RVT{&quot;APS credentials set?&quot;}
     RVT --&gt;|&quot;yes&quot;| APS[&quot;Autodesk APS&lt;br/&gt;Model Derivative → IFC&quot;]
-    RVT --&gt;|&quot;no&quot;| FALLBACK[&quot;demo fallback:&lt;br/&gt;bundled representative IFC&quot;]
+    RVT --&gt;|&quot;no&quot;| FAIL[&quot;fail with clear error&lt;br/&gt;(no sample substitution)&quot;]
     IFC --&gt; M[&quot;build_mesh() + metadata.json&quot;]
     GLT --&gt; M
     APS --&gt; M
-    FALLBACK --&gt; M
     M --&gt; O[&quot;model.glb + model.gltf + metadata.json&quot;]
 </code></pre>
 <h2 id="ascii-data-flow">ASCII data flow</h2>
@@ -184,7 +183,7 @@ body { margin:0; background:var(--bg); color:var(--text);
 <li><strong>Async jobs with live progress.</strong> Processing runs in a background thread;
    the store records stages and logs that the dashboard polls.</li>
 <li><strong>Format-routed processing.</strong> <code>.ifc</code> is parsed natively; <code>.gltf/.glb</code> is
-   normalised; <code>.rvt</code> routes to the APS adapter (or an explicit demo fallback).</li>
+   normalised; <code>.rvt</code> routes to the APS adapter (or fails clearly without credentials).</li>
 <li><strong>Faithful units.</strong> IFC millimetres are converted to metres (glTF standard)
    so outputs drop straight into AR/VR and web viewers.</li>
 </ol>

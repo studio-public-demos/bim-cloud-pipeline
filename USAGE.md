@@ -225,8 +225,9 @@ The canonical `.rvt` workflow is:
   (2-legged OAuth) → create a transient bucket → upload the RVT → translate to
   an **IFC derivative** (Revit's own IFC export) → download the IFC and
   normalise it through the same native IFC pipeline.
-- **Without credentials** — **demo fallback**: processes a bundled
-  representative IFC and flags it clearly in the job logs and summary.
+- **Without credentials** — the job **fails with a clear error** telling you to
+  set APS credentials (or upload IFC/glTF/GLB). An uploaded file is never
+  replaced by a bundled sample.
 
 > Status note: the APS adapter is a complete implementation that is
 > **unit-tested with mocks** but has **not been live-validated** — exercising
@@ -314,7 +315,7 @@ const meta = await fetch(job.outputs.metadata).then(r => r.json());
 | `ModuleNotFoundError` | Run `pip install -r requirements.txt`. |
 | 3D viewer stays blank / "Waiting for GLB" | Job hasn't finished; check **Logs**. Requires internet for the Three.js CDN. |
 | `Unsupported format '.zip'` (HTTP 400) | Only `.ifc`, `.rvt`, `.gltf`, `.glb` are accepted. |
-| `.rvt` job says "demo fallback" | Expected without `APS_CLIENT_ID`/`APS_CLIENT_SECRET`. |
+| `.rvt` job fails with "requires Autodesk APS credentials" | Expected without `APS_CLIENT_ID`/`APS_CLIENT_SECRET`. Set them, or upload an IFC/glTF/GLB file. |
 | Port already in use | Run with a different `--port` (e.g. `--port 9000`). |
 
 ## 10. Limitations (POC scope)

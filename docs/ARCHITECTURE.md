@@ -43,11 +43,10 @@ flowchart LR
     DET -->|".gltf / .glb"| GLT["normalise & re-export"]
     DET -->|".rvt"| RVT{"APS credentials set?"}
     RVT -->|"yes"| APS["Autodesk APS<br/>Model Derivative → IFC"]
-    RVT -->|"no"| FALLBACK["demo fallback:<br/>bundled representative IFC"]
+    RVT -->|"no"| FAIL["fail with clear error<br/>(no sample substitution)"]
     IFC --> M["build_mesh() + metadata.json"]
     GLT --> M
     APS --> M
-    FALLBACK --> M
     M --> O["model.glb + model.gltf + metadata.json"]
 ```
 
@@ -96,7 +95,7 @@ flowchart LR
 3. **Async jobs with live progress.** Processing runs in a background thread;
    the store records stages and logs that the dashboard polls.
 4. **Format-routed processing.** `.ifc` is parsed natively; `.gltf/.glb` is
-   normalised; `.rvt` routes to the APS adapter (or an explicit demo fallback).
+   normalised; `.rvt` routes to the APS adapter (or fails clearly without credentials).
 5. **Faithful units.** IFC millimetres are converted to metres (glTF standard)
    so outputs drop straight into AR/VR and web viewers.
 

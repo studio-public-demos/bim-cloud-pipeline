@@ -317,8 +317,9 @@ for name, url in done[&quot;outputs&quot;].items():
   (2-legged OAuth) → create a transient bucket → upload the RVT → translate to
   an <strong>IFC derivative</strong> (Revit's own IFC export) → download the IFC and
   normalise it through the same native IFC pipeline.</li>
-<li><strong>Without credentials</strong> — <strong>demo fallback</strong>: processes a bundled
-  representative IFC and flags it clearly in the job logs and summary.</li>
+<li><strong>Without credentials</strong> — the job <strong>fails with a clear error</strong> telling you to
+  set APS credentials (or upload IFC/glTF/GLB). An uploaded file is never
+  replaced by a bundled sample.</li>
 </ul>
 <blockquote>
 <p>Status note: the APS adapter is a complete implementation that is
@@ -450,8 +451,8 @@ const meta = await fetch(job.outputs.metadata).then(r =&gt; r.json());
 <td>Only <code>.ifc</code>, <code>.rvt</code>, <code>.gltf</code>, <code>.glb</code> are accepted.</td>
 </tr>
 <tr>
-<td><code>.rvt</code> job says "demo fallback"</td>
-<td>Expected without <code>APS_CLIENT_ID</code>/<code>APS_CLIENT_SECRET</code>.</td>
+<td><code>.rvt</code> job fails with "requires Autodesk APS credentials"</td>
+<td>Expected without <code>APS_CLIENT_ID</code>/<code>APS_CLIENT_SECRET</code>. Set them, or upload an IFC/glTF/GLB file.</td>
 </tr>
 <tr>
 <td>Port already in use</td>

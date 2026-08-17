@@ -106,6 +106,20 @@ def test_aps_unconfigured():
     print("ok aps unconfigured")
 
 
+def test_rvt_route_requires_aps_no_sample_substitution():
+    import pipeline
+    fake_aps = mock.Mock()
+    fake_aps.configured = False
+    logs = []
+    with mock.patch.object(pipeline.aps_adapter, "APSAdapter", return_value=fake_aps):
+        try:
+            pipeline._process_rvt("job1", "uploaded.rvt", None, logs.append, lambda *a: None)
+            raise AssertionError("expected ValueError for .rvt without APS credentials")
+        except ValueError as exc:
+            assert "Autodesk APS credentials" in str(exc)
+    print("ok rvt route requires aps (no sample substitution)")
+
+
 def test_storage_local_fallback():
     os.environ.pop("AWS_S3_BUCKET", None)
     os.environ.pop("AWS_ACCESS_KEY_ID", None)
@@ -140,6 +154,7 @@ if __name__ == "__main__":
     test_to_urn()
     test_aps_flow_ifc()
     test_aps_unconfigured()
+    test_rvt_route_requires_aps_no_sample_substitution()
     test_storage_local_fallback()
     test_s3_publish_mocked()
     print("\nALL ADAPTER TESTS PASSED")

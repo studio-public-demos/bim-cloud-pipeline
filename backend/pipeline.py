@@ -3,9 +3,10 @@
 Supports three input routes:
   - .ifc  : real parse (geometry + metadata) via ifc_parser + glb_builder
   - .gltf / .glb : validate and re-export through the same derivative pipeline
-  - .rvt  : Revit route. Native parsing needs Autodesk APS (Model Derivative).
-            Without APS credentials the POC falls back to a bundled
-            representative model and clearly flags it in the logs/summary.
+  - .rvt  : Revit route via Autodesk APS (Model Derivative) -> IFC derivative
+            -> native IFC pipeline. Requires APS_CLIENT_ID / APS_CLIENT_SECRET;
+            without them the job fails with a clear error (no silent sample
+            substitution).
 
 Every stage is logged so the dashboard can show live progress.
 """
@@ -27,7 +28,7 @@ def detect_format(filename: str) -> str:
     return ext
 
 
-def run_pipeline(job_id: str, src_path: str, store, samples_dir: str):
+def run_pipeline(job_id: str, src_path: str, store):
     job = store.get(job_id)
     fmt = job["format"]
 
@@ -51,7 +52,7 @@ def run_pipeline(job_id: str, src_path: str, store, samples_dir: str):
         elif fmt == "ifc":
             _process_ifc(job_id, src_path, store, log, stage)
         elif fmt == "rvt":
-            _process_rvt(job_id, src_path, store, log, stage, samples_dir)
+            _process_rvt(job_id, src_path, store, log, stage)
         else:
             raise ValueError(
                 f"Unsupported format '.{fmt}'. Supported: .ifc, .rvt, .gltf, .glb"
@@ -154,31 +155,25 @@ def _process_gltf(job_id, src_path, store, log, stage):
     _finalize(job_id, store, out_dir, stats, meta)
 
 
-def _process_rvt(job_id, src_path, store, log, stage, samples_dir):
+def _process_rvt(job_id, src_path, store, log, stage):
     aps = aps_adapter.APSAdapter()
-    if aps.configured:
-        log("Autodesk APS credentials found -> Model Derivative route")
-        stage("validated", "done", "Revit (RVT) recognised")
-        try:
-            ifc_path = aps.convert(src_path, job_id, log)
-            stage("parsed", "done", "APS translated RVT -> IFC")
-            log("Feeding APS IFC output through the native parser...")
-            _process_ifc(job_id, ifc_path, store, log, stage)
-            store.update(job_id, format="rvt")
-            return
-        except Exception as exc:  # noqa: BLE001
-            raise ValueError(f"APS conversion failed: {exc}") from exc
+    if not aps.configured:
+        raise ValueError(
+            "Revit (.rvt) conversion requires Autodesk APS credentials. "
+            "Set APS_CLIENT_ID and APS_CLIENT_SECRET to convert this file, "
+            "or upload an IFC/glTF/GLB file (or run the bundled samples)."
+        )
 
-    log("No APS credentials -> Revit demo fallback engaged")
-    log("In production, RVT is uploaded to Autodesk Model Derivative and "
-        "converted via Revit's engine; here we substitute a representative "
-        "IFC-derived model.")
-    stage("validated", "done", "Revit (RVT) recognised (demo fallback)")
-    sample = os.path.join(samples_dir, "Building-Architecture.ifc")
-    _process_ifc(job_id, sample, store, log, stage)
-    store.update(job_id, format="rvt")
-    log("Note: output was produced from a bundled representative IFC model "
-        "(demo fallback, no Autodesk APS credentials).")
+    log("Autodesk APS credentials found -> Model Derivative route")
+    stage("validated", "done", "Revit (RVT) recognised")
+    try:
+        ifc_path = aps.convert(src_path, job_id, log)
+        stage("parsed", "done", "APS translated RVT -> IFC")
+        log("Feeding APS IFC output through the native parser...")
+        _process_ifc(job_id, ifc_path, store, log, stage)
+        store.update(job_id, format="rvt")
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError(f"APS conversion failed: {exc}") from exc
 
 
 def _finalize(job_id, store, out_dir, stats, model):

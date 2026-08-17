@@ -105,8 +105,8 @@ body { margin:0; background:var(--bg); color:var(--text);
 </tr>
 <tr>
 <td>A6</td>
-<td>Revit <code>.rvt</code> is recognised; without APS credentials it uses the documented demo fallback</td>
-<td>POST a <code>.rvt</code> → completed with fallback note</td>
+<td>Revit <code>.rvt</code> is recognised; without APS credentials it fails with a clear error (no sample substitution)</td>
+<td>POST a <code>.rvt</code> → <code>failed</code> with "requires Autodesk APS credentials"</td>
 <td>✅</td>
 </tr>
 <tr>

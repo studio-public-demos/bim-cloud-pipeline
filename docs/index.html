@@ -186,8 +186,9 @@ detects <code>.rvt</code> and:</p>
   to a transient bucket → translate to an <strong>IFC derivative</strong> (Revit's own IFC
   export) → download the IFC → feed it through the <strong>native IFC pipeline</strong>
   (<code>ifc_parser</code> + <code>glb_builder</code>) to produce GLB/GLTF + metadata;</li>
-<li>otherwise → <strong>demo fallback</strong>: processes a bundled representative IFC and
-  flags it clearly in the logs and summary.</li>
+<li>otherwise → the job <strong>fails with a clear error</strong> telling the user to set APS
+  credentials (or upload IFC/glTF/GLB). The pipeline never substitutes a
+  bundled sample for an uploaded file.</li>
 </ul>
 <p>Canonical <code>.rvt</code> workflow:</p>
 <pre><code>.rvt ──► Autodesk APS Model Derivative ──► IFC derivative ──► native IFC pipeline ──► GLB/GLTF + metadata.json
@@ -299,10 +300,6 @@ server-side secrets; never commit them or expose them in the frontend.</p>
 <tr>
 <td>Revit <code>.rvt</code> → APS Model Derivative</td>
 <td><strong>Implemented + unit-tested (mocked)</strong> — real adapter code, verified with mocks; <em>not live-validated</em> (requires a live APS account)</td>
-</tr>
-<tr>
-<td>Revit <code>.rvt</code> demo fallback (no credentials)</td>
-<td><strong>Implemented</strong> — deterministic substitute of a bundled representative IFC, clearly flagged</td>
 </tr>
 <tr>
 <td>S3 cloud storage (presigned URLs)</td>

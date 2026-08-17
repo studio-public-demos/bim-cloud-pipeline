@@ -237,7 +237,7 @@ def upload_job(request: Request, response: Response, file: UploadFile | None = F
 
     threading.Thread(
         target=pipeline.run_pipeline,
-        args=(job["id"], str(dest), store, str(SAMPLES_DIR)),
+        args=(job["id"], str(dest), store),
         daemon=True,
     ).start()
     return job
@@ -267,7 +267,7 @@ def _demo(sample: str, request: Request, response: Response):
     job = store.create(path.name, path.stat().st_size, "ifc", client_id=client_id)
     threading.Thread(
         target=pipeline.run_pipeline,
-        args=(job["id"], str(path), store, str(SAMPLES_DIR)),
+        args=(job["id"], str(path), store),
         daemon=True,
     ).start()
     return job

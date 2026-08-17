@@ -43,8 +43,9 @@ A single REST pipeline that:
 - Job status, stage progress and logs are live.
 - 3D model is viewable in-browser; metadata is structured and queryable.
 - Revit `.rvt` route is clearly handled: real Autodesk APS adapter
-  (implemented, unit-tested with mocks, not yet live-validated) plus a demo
-  fallback when credentials are absent.
+  (implemented, unit-tested with mocks, not yet live-validated); without APS
+  credentials the job fails with a clear error (an uploaded file is never
+  replaced by a bundled sample).
 - Responsive UI; no blocking console errors.
 
 ## Capability status

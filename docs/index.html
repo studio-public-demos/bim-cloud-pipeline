@@ -58,7 +58,10 @@ body { margin:0; background:var(--bg); color:var(--text);
       <a href="criteria.html">Acceptance criteria</a>
     </nav>
   </aside>
-  <main class="content"><h1 id="bim-cloud-pipeline-poc">BIM Cloud Pipeline — POC</h1>
+  <main class="content"><h1 id="bim-cloud-pipeline">BIM Cloud Pipeline</h1>
+<p><a href="https://github.com/studio-public-demos/bim-cloud-pipeline/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/studio-public-demos/bim-cloud-pipeline/actions/workflows/ci.yml/badge.svg"></a>
+<a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+<a href="https://www.python.org/"><img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB.svg"></a></p>
 <p>Upload <strong>Revit / IFC</strong> files, process them in the cloud, and download
 <strong>GLB / GLTF</strong> 3D models + <strong>structured metadata JSON</strong> for web, mobile,
 AR/VR and digital-twin applications.</p>
@@ -66,9 +69,17 @@ AR/VR and digital-twin applications.</p>
 <p>The value is not just "convert BIM to 3D". It is making BIM data <em>usable</em>
 where direct Revit/IFC support is heavy or unavailable.</p>
 </blockquote>
+<p>This is a full-stack reference implementation — a working FastAPI backend with a
+dependency-free IFC parser, a mobile-first dashboard, a Three.js 3D viewer, a
+multi-model compare view, and credential-gated adapters for real Revit
+conversion (Autodesk APS) and S3 cloud storage. It ships with <strong>real IFC sample
+data</strong> (buildingSMART) and an automated test suite.</p>
 <p><strong>Documentation:</strong>
 - <a href="USAGE.md">USAGE.md</a> — full how-to guide: install, dashboard walkthrough,
-  REST API, output schema, integration examples, troubleshooting.</p>
+  REST API, output schema, integration examples, troubleshooting.
+- <strong>Browsable docs:</strong> <a href="https://studio-public-demos.github.io/bim-cloud-pipeline/">studio-public-demos.github.io/bim-cloud-pipeline</a> —
+  usage guide, architecture (with diagrams), product brief, and acceptance
+  criteria, deployed to GitHub Pages.</p>
 <h2 id="quick-start">Quick start</h2>
 <pre><code class="language-bash"># 1. (optional) create a venv and install
 pip install -r requirements.txt
@@ -78,6 +89,30 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8765 --app-dir backend
 
 # 3. open http://127.0.0.1:8765
 </code></pre>
+<h2 id="deployment-live-demo">Deployment (live demo)</h2>
+<p>The pipeline needs a Python backend (it cannot run on static hosting such as
+GitHub Pages). Two easy options:</p>
+<p><strong>Hugging Face Spaces (Docker)</strong> — free, instant public URL, secrets as env vars:</p>
+<ol>
+<li>On <a href="https://huggingface.co/new-space">huggingface.co</a>, create a new <strong>Space</strong>
+   with <strong>Docker</strong> as the SDK.</li>
+<li>Point it at this repo (or upload the files) — the included <code>Dockerfile</code>
+   listens on port 7860, which HF Spaces requires.</li>
+<li>In <strong>Settings → Secrets</strong>, add:
+   - <code>PUBLIC_DEMO_MODE=1</code> (required for any public deployment — disables uploads, scopes job history per visitor)
+   - <code>APS_CLIENT_ID</code> and <code>APS_CLIENT_SECRET</code> (for real Revit conversion)
+   - <code>AWS_ACCESS_KEY_ID</code>, <code>AWS_SECRET_ACCESS_KEY</code>, <code>AWS_S3_BUCKET</code> (optional, S3)</li>
+<li>The Space builds and serves the app at <code>https://&lt;user&gt;-&lt;space&gt;.hf.space</code>.</li>
+</ol>
+<p><strong>Render</strong> — alternative Python host. Use the included <code>render.yaml</code> blueprint
+(or <code>Deploy to Render</code>), then set the same environment variables in the
+dashboard.</p>
+<blockquote>
+<p>Note: free tiers sleep after inactivity (cold start ~1 min) and use ephemeral
+storage, so jobs/outputs don't survive restarts — fine for a demo. Keep the
+APS <strong>secret</strong> as a server-side env var; never commit it or put it in the
+frontend.</p>
+</blockquote>
 <h2 id="what-it-does">What it does</h2>
 <table>
 <thead>
@@ -144,12 +179,19 @@ curl http://127.0.0.1:8765/api/compare/&lt;idA&gt;/&lt;idB&gt;
 </ul>
 <h2 id="revit-rvt-route">Revit (.rvt) route</h2>
 <p>Native <code>.rvt</code> parsing requires Autodesk APS (Model Derivative). The pipeline
-detects <code>.rvt</code> and:
-- if <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code> are set → runs the <strong>real APS
-  adapter</strong> (<code>backend/aps_adapter.py</code>): authenticate → upload to a transient
-  bucket → translate to SVF2 + glTF → download the glTF derivative;
-- otherwise → <strong>demo fallback</strong>: processes a bundled representative IFC and
-  flags it clearly in the logs and summary.</p>
+detects <code>.rvt</code> and:</p>
+<ul>
+<li>if <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code> are set → runs the <strong>real APS
+  adapter</strong> (<code>backend/aps_adapter.py</code>): authenticate (2-legged OAuth) → upload
+  to a transient bucket → translate to an <strong>IFC derivative</strong> (Revit's own IFC
+  export) → download the IFC → feed it through the <strong>native IFC pipeline</strong>
+  (<code>ifc_parser</code> + <code>glb_builder</code>) to produce GLB/GLTF + metadata;</li>
+<li>otherwise → <strong>demo fallback</strong>: processes a bundled representative IFC and
+  flags it clearly in the logs and summary.</li>
+</ul>
+<p>Canonical <code>.rvt</code> workflow:</p>
+<pre><code>.rvt ──► Autodesk APS Model Derivative ──► IFC derivative ──► native IFC pipeline ──► GLB/GLTF + metadata.json
+</code></pre>
 <h2 id="cloud-storage-s3">Cloud storage (S3)</h2>
 <p>Set <code>AWS_ACCESS_KEY_ID</code>, <code>AWS_SECRET_ACCESS_KEY</code> and <code>AWS_S3_BUCKET</code>
 (optional <code>AWS_REGION</code>) to publish each job's outputs to Amazon S3 and expose
@@ -166,6 +208,31 @@ Without these, outputs stay on local disk (<code>backend/storage.py</code>).</p>
 </thead>
 <tbody>
 <tr>
+<td><code>PUBLIC_DEMO_MODE</code></td>
+<td>Public safety</td>
+<td><code>1</code> disables uploads, exposes only bundled samples, scopes job history per visitor</td>
+</tr>
+<tr>
+<td><code>MAX_FILE_SIZE_MB</code></td>
+<td>Upload limit</td>
+<td>Max upload size in MB (default <code>50</code>)</td>
+</tr>
+<tr>
+<td><code>MAX_CONCURRENT_JOBS</code></td>
+<td>Concurrency limit</td>
+<td>Max active jobs (default <code>4</code>)</td>
+</tr>
+<tr>
+<td><code>MAX_JOBS_PER_MINUTE</code></td>
+<td>Rate limit</td>
+<td>Max job creations per minute per IP (default <code>10</code>)</td>
+</tr>
+<tr>
+<td><code>JOB_TTL_SECONDS</code></td>
+<td>TTL cleanup</td>
+<td>Auto-delete finished jobs/outputs after N seconds (default <code>3600</code>; <code>0</code> disables)</td>
+</tr>
+<tr>
 <td><code>APS_CLIENT_ID</code> + <code>APS_CLIENT_SECRET</code></td>
 <td>Real Revit conversion</td>
 <td>Enables the APS Model Derivative route for <code>.rvt</code></td>
@@ -179,6 +246,67 @@ Without these, outputs stay on local disk (<code>backend/storage.py</code>).</p>
 <td><code>AWS_REGION</code> (optional)</td>
 <td>Cloud storage</td>
 <td>S3 region (default <code>us-east-1</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="public-demo-mode">Public demo mode</h3>
+<p>Public demo mode is <strong>on by default on hosted platforms</strong> (Render, Hugging Face
+Spaces, etc.) and <strong>off by default locally</strong>. Set <code>PUBLIC_DEMO_MODE=1</code> to force
+it on, or <code>PUBLIC_DEMO_MODE=0</code> to force it off. It:</p>
+<ol>
+<li><strong>Disables arbitrary uploads</strong> (<code>POST /api/jobs</code> → 403). Only the bundled
+   Architecture and Structural samples can be run.</li>
+<li><strong>Scopes job history</strong> to the requesting visitor (per-session cookie), so
+   unrelated visitors cannot see each other's jobs, downloads, or comparisons.</li>
+<li><strong>Enforces limits</strong> (file size, concurrency, rate) and <strong>TTL cleanup</strong>
+   (finished jobs/outputs are deleted automatically).</li>
+<li>Shows a <strong>visible warning</strong> in the dashboard to never upload confidential
+   models.</li>
+</ol>
+<p>Always keep <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code> and AWS credentials as
+server-side secrets; never commit them or expose them in the frontend.</p>
+<h2 id="capability-status">Capability status</h2>
+<p>This section distinguishes what is <em>implemented</em> vs <em>mocked/unit-tested</em> vs
+<em>live-validated</em>, so the claim "it works" is precise.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IFC → GLB/GLTF + metadata (native parser)</td>
+<td><strong>Live-validated</strong> — real buildingSMART IFC4 samples processed end-to-end (Architecture: 19 elements → 270-triangle GLB, ~17 KB; Structural: 18 elements → 712-triangle GLB, ~43 KB)</td>
+</tr>
+<tr>
+<td>glTF/GLB normalisation</td>
+<td><strong>Live-validated</strong> — validated and re-exported through the derivative pipeline</td>
+</tr>
+<tr>
+<td>Multi-model compare (metadata diff)</td>
+<td><strong>Live-validated</strong> — Architecture vs Structural: 4 common / 14 added / 15 removed</td>
+</tr>
+<tr>
+<td>Job tracking, downloads, REST API</td>
+<td><strong>Live-validated</strong> — exercised via the dashboard and <code>curl</code></td>
+</tr>
+<tr>
+<td>Responsive dashboard + Three.js viewer</td>
+<td><strong>Live-validated</strong> — 320/375/768/1280 px, WebGL renders both samples</td>
+</tr>
+<tr>
+<td>Revit <code>.rvt</code> → APS Model Derivative</td>
+<td><strong>Implemented + unit-tested (mocked)</strong> — real adapter code, verified with mocks; <em>not live-validated</em> (requires a live APS account)</td>
+</tr>
+<tr>
+<td>Revit <code>.rvt</code> demo fallback (no credentials)</td>
+<td><strong>Implemented</strong> — deterministic substitute of a bundled representative IFC, clearly flagged</td>
+</tr>
+<tr>
+<td>S3 cloud storage (presigned URLs)</td>
+<td><strong>Implemented + unit-tested (mocked)</strong> — <em>not live-validated</em> (requires live AWS credentials); falls back to local disk</td>
 </tr>
 </tbody>
 </table>

@@ -42,7 +42,7 @@ flowchart LR
     DET -->|".ifc"| IFC["parse IFC (real geometry + metadata)"]
     DET -->|".gltf / .glb"| GLT["normalise & re-export"]
     DET -->|".rvt"| RVT{"APS credentials set?"}
-    RVT -->|"yes"| APS["Autodesk APS<br/>Model Derivative (stub)"]
+    RVT -->|"yes"| APS["Autodesk APS<br/>Model Derivative → IFC"]
     RVT -->|"no"| FALLBACK["demo fallback:<br/>bundled representative IFC"]
     IFC --> M["build_mesh() + metadata.json"]
     GLT --> M
@@ -102,12 +102,17 @@ flowchart LR
 
 ## Extension points (now implemented)
 
-- **Autodesk APS adapter** — *implemented* (`backend/aps_adapter.py`). Real
-  `.rvt` conversion via APS Model Derivative (OAuth → bucket → translate →
-  glTF download). Activates when `APS_CLIENT_ID` / `APS_CLIENT_SECRET` are set.
-- **Cloud storage** — *implemented* (`backend/storage.py`). `S3Storage` uploads
-  outputs and returns presigned URLs when AWS credentials + `AWS_S3_BUCKET` are
-  set; `LocalStorage` is the default.
-- **Compare view** — *implemented*. `GET /api/compare/{idA}/{idB}` diffs two
+- **Autodesk APS adapter** - *implemented + unit-tested (mocked)*
+  (`backend/aps_adapter.py`). Real `.rvt` conversion via APS Model Derivative:
+  OAuth → bucket → translate to **IFC** → download the IFC derivative → feed it
+  through the native IFC parser. Activates when `APS_CLIENT_ID` /
+  `APS_CLIENT_SECRET` are set. *Not live-validated* (requires a live APS account).
+- **Cloud storage** - *implemented + unit-tested (mocked)* (`backend/storage.py`).
+  `S3Storage` uploads outputs and returns presigned URLs when AWS credentials +
+  `AWS_S3_BUCKET` are set; `LocalStorage` is the default.
+- **Compare view** - *implemented*. `GET /api/compare/{idA}/{idB}` diffs two
   models (`backend/compare.py`) and the dashboard renders side-by-side viewers
   plus a metadata diff table.
+- **Public demo mode** - *implemented*. `PUBLIC_DEMO_MODE=1` disables uploads,
+  exposes only bundled samples, scopes job history per visitor, and enables
+  limits + TTL cleanup.

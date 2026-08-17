@@ -208,19 +208,29 @@ Notes:
 
 | Extension | Behaviour |
 |-----------|-----------|
-| `.ifc` | Fully parsed: real geometry + real metadata. |
+| `.ifc` | Fully parsed: real geometry + real metadata (live-validated). |
 | `.gltf` / `.glb` | Validated, normalised and re-exported through the same derivative pipeline. |
 | `.rvt` | Recognised. Real conversion uses Autodesk APS (Model Derivative) — see below. |
 
 **Revit `.rvt`:**
 
+The canonical `.rvt` workflow is:
+
+```
+.rvt ──► Autodesk APS Model Derivative ──► IFC derivative ──► native IFC pipeline ──► GLB/GLTF + metadata.json
+```
+
 - **With credentials** — set `APS_CLIENT_ID` and `APS_CLIENT_SECRET` and the
   pipeline runs the real APS adapter (`backend/aps_adapter.py`): authenticate
   (2-legged OAuth) → create a transient bucket → upload the RVT → translate to
-  SVF2 + glTF → download the glTF derivative and normalise it through the same
-  derivative pipeline.
+  an **IFC derivative** (Revit's own IFC export) → download the IFC and
+  normalise it through the same native IFC pipeline.
 - **Without credentials** — **demo fallback**: processes a bundled
   representative IFC and flags it clearly in the job logs and summary.
+
+> Status note: the APS adapter is a complete implementation that is
+> **unit-tested with mocks** but has **not been live-validated** — exercising
+> it requires a live Autodesk APS account. See `README.md` → *Capability status*.
 
 ## 7. Cloud storage & configuration
 
@@ -228,9 +238,30 @@ Notes:
 
 | Variable | Feature | Effect |
 |----------|---------|--------|
+| `PUBLIC_DEMO_MODE` | Public safety | `1` disables uploads, exposes only bundled samples, scopes job history per visitor |
+| `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `50`) |
+| `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `4`) |
+| `MAX_JOBS_PER_MINUTE` | Rate limit | Max job creations per minute per IP (default `10`) |
+| `JOB_TTL_SECONDS` | TTL cleanup | Auto-delete finished jobs/outputs after N seconds (default `3600`; `0` disables) |
 | `APS_CLIENT_ID` + `APS_CLIENT_SECRET` | Real Revit conversion | Enables the APS Model Derivative route for `.rvt` |
 | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` + `AWS_S3_BUCKET` | Cloud storage | Publishes outputs to S3 with presigned URLs |
 | `AWS_REGION` (optional) | Cloud storage | S3 region (default `us-east-1`) |
+
+### Public demo mode
+
+When the pipeline is reachable by arbitrary visitors on the internet (Render,
+Hugging Face Spaces, etc.), public demo mode is **on by default**. Force it on
+with `PUBLIC_DEMO_MODE=1`, or off with `PUBLIC_DEMO_MODE=0`. This:
+
+1. **Disables arbitrary uploads** — `POST /api/jobs` returns `403`; only the
+   bundled Architecture / Structural samples can be run.
+2. **Scopes job history** — each visitor sees only the jobs they created (a
+   per-session cookie), so unrelated visitors cannot browse the global job list,
+   open others' jobs, download their outputs, or compare their models.
+3. **Enforces limits** — file-size, concurrency, and rate limits.
+4. **Auto-expires** jobs and outputs (TTL cleanup).
+5. Shows a **visible warning** in the dashboard: never upload confidential or
+   proprietary models.
 
 ### S3 cloud copies
 

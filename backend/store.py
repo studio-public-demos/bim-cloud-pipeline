@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import threading
 import time
 import uuid
@@ -39,7 +40,7 @@ class JobStore:
                 except Exception:
                     pass
 
-    def create(self, filename: str, size_bytes: int, file_format: str) -> dict:
+    def create(self, filename: str, size_bytes: int, file_format: str, client_id: str | None = None) -> dict:
         job_id = uuid.uuid4().hex[:12]
         now = time.time()
         job = {
@@ -56,6 +57,7 @@ class JobStore:
             "outputs": {},
             "summary": None,
             "error": None,
+            "clientId": client_id,
         }
         with self._lock:
             self._jobs[job_id] = job
@@ -68,6 +70,29 @@ class JobStore:
     def list(self):
         jobs = sorted(self._jobs.values(), key=lambda j: -j["createdAt"])
         return jobs
+
+    def list_for_client(self, client_id: str | None):
+        jobs = [j for j in self._jobs.values() if j.get("clientId") == client_id]
+        jobs.sort(key=lambda j: -j["createdAt"])
+        return jobs
+
+    def delete(self, job_id: str):
+        """Remove a job record and its output directory."""
+        with self._lock:
+            self._jobs.pop(job_id, None)
+        shutil.rmtree(self.output_dir(job_id), ignore_errors=True)
+        job_dir = os.path.join(self.jobs_dir, job_id)
+        shutil.rmtree(job_dir, ignore_errors=True)
+
+    def cleanup(self, max_age_seconds: int) -> int:
+        """Delete jobs older than ``max_age_seconds``. Returns count removed."""
+        if max_age_seconds <= 0:
+            return 0
+        cutoff = time.time() - max_age_seconds
+        expired = [j["id"] for j in self._jobs.values() if j["createdAt"] < cutoff]
+        for job_id in expired:
+            self.delete(job_id)
+        return len(expired)
 
     def log(self, job_id: str, message: str):
         with self._lock:

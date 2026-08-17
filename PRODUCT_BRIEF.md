@@ -42,5 +42,18 @@ A single REST pipeline that:
 - Upload + process `.ifc` → real GLB + GLTF + metadata JSON.
 - Job status, stage progress and logs are live.
 - 3D model is viewable in-browser; metadata is structured and queryable.
-- Revit `.rvt` route is clearly handled (APS integration stub + demo fallback).
+- Revit `.rvt` route is clearly handled: real Autodesk APS adapter
+  (implemented, unit-tested with mocks, not yet live-validated) plus a demo
+  fallback when credentials are absent.
 - Responsive UI; no blocking console errors.
+
+## Capability status
+
+| Capability | Status |
+|-----------|--------|
+| IFC → GLB/GLTF + metadata | **Live-validated** (real buildingSMART samples) |
+| glTF/GLB normalisation | **Live-validated** |
+| Multi-model compare | **Live-validated** (4 common / 14 added / 15 removed) |
+| Dashboard + viewer | **Live-validated** |
+| Revit `.rvt` → APS | **Implemented + unit-tested (mocked)** — not live-validated (needs live APS account) |
+| S3 storage | **Implemented + unit-tested (mocked)** — not live-validated (needs live AWS credentials) |

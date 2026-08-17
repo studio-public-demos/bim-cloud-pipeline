@@ -48,6 +48,7 @@ GitHub Pages). Two easy options:
 2. Point it at this repo (or upload the files) — the included `Dockerfile`
    listens on port 7860, which HF Spaces requires.
 3. In **Settings → Secrets**, add:
+   - `PUBLIC_DEMO_MODE=1` (required for any public deployment — disables uploads, scopes job history per visitor)
    - `APS_CLIENT_ID` and `APS_CLIENT_SECRET` (for real Revit conversion)
    - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` (optional, S3)
 4. The Space builds and serves the app at `https://<user>-<space>.hf.space`.
@@ -119,11 +120,20 @@ frontend (dashboard) ──► FastAPI (/api/jobs ...)
 
 Native `.rvt` parsing requires Autodesk APS (Model Derivative). The pipeline
 detects `.rvt` and:
+
 - if `APS_CLIENT_ID` / `APS_CLIENT_SECRET` are set → runs the **real APS
-  adapter** (`backend/aps_adapter.py`): authenticate → upload to a transient
-  bucket → translate to SVF2 + glTF → download the glTF derivative;
+  adapter** (`backend/aps_adapter.py`): authenticate (2-legged OAuth) → upload
+  to a transient bucket → translate to an **IFC derivative** (Revit's own IFC
+  export) → download the IFC → feed it through the **native IFC pipeline**
+  (`ifc_parser` + `glb_builder`) to produce GLB/GLTF + metadata;
 - otherwise → **demo fallback**: processes a bundled representative IFC and
   flags it clearly in the logs and summary.
+
+Canonical `.rvt` workflow:
+
+```
+.rvt ──► Autodesk APS Model Derivative ──► IFC derivative ──► native IFC pipeline ──► GLB/GLTF + metadata.json
+```
 
 ## Cloud storage (S3)
 
@@ -136,9 +146,48 @@ Without these, outputs stay on local disk (`backend/storage.py`).
 
 | Variable | Feature | Effect |
 |----------|---------|--------|
+| `PUBLIC_DEMO_MODE` | Public safety | `1` disables uploads, exposes only bundled samples, scopes job history per visitor |
+| `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `50`) |
+| `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `4`) |
+| `MAX_JOBS_PER_MINUTE` | Rate limit | Max job creations per minute per IP (default `10`) |
+| `JOB_TTL_SECONDS` | TTL cleanup | Auto-delete finished jobs/outputs after N seconds (default `3600`; `0` disables) |
 | `APS_CLIENT_ID` + `APS_CLIENT_SECRET` | Real Revit conversion | Enables the APS Model Derivative route for `.rvt` |
 | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` + `AWS_S3_BUCKET` | Cloud storage | Publishes outputs to S3 with presigned URLs |
 | `AWS_REGION` (optional) | Cloud storage | S3 region (default `us-east-1`) |
+
+### Public demo mode
+
+Public demo mode is **on by default on hosted platforms** (Render, Hugging Face
+Spaces, etc.) and **off by default locally**. Set `PUBLIC_DEMO_MODE=1` to force
+it on, or `PUBLIC_DEMO_MODE=0` to force it off. It:
+
+1. **Disables arbitrary uploads** (`POST /api/jobs` → 403). Only the bundled
+   Architecture and Structural samples can be run.
+2. **Scopes job history** to the requesting visitor (per-session cookie), so
+   unrelated visitors cannot see each other's jobs, downloads, or comparisons.
+3. **Enforces limits** (file size, concurrency, rate) and **TTL cleanup**
+   (finished jobs/outputs are deleted automatically).
+4. Shows a **visible warning** in the dashboard to never upload confidential
+   models.
+
+Always keep `APS_CLIENT_ID` / `APS_CLIENT_SECRET` and AWS credentials as
+server-side secrets; never commit them or expose them in the frontend.
+
+## Capability status
+
+This section distinguishes what is *implemented* vs *mocked/unit-tested* vs
+*live-validated*, so the claim "it works" is precise.
+
+| Capability | Status |
+|-----------|--------|
+| IFC → GLB/GLTF + metadata (native parser) | **Live-validated** — real buildingSMART IFC4 samples processed end-to-end (Architecture: 19 elements → 270-triangle GLB, ~17 KB; Structural: 18 elements → 712-triangle GLB, ~43 KB) |
+| glTF/GLB normalisation | **Live-validated** — validated and re-exported through the derivative pipeline |
+| Multi-model compare (metadata diff) | **Live-validated** — Architecture vs Structural: 4 common / 14 added / 15 removed |
+| Job tracking, downloads, REST API | **Live-validated** — exercised via the dashboard and `curl` |
+| Responsive dashboard + Three.js viewer | **Live-validated** — 320/375/768/1280 px, WebGL renders both samples |
+| Revit `.rvt` → APS Model Derivative | **Implemented + unit-tested (mocked)** — real adapter code, verified with mocks; *not live-validated* (requires a live APS account) |
+| Revit `.rvt` demo fallback (no credentials) | **Implemented** — deterministic substitute of a bundled representative IFC, clearly flagged |
+| S3 cloud storage (presigned URLs) | **Implemented + unit-tested (mocked)** — *not live-validated* (requires live AWS credentials); falls back to local disk |
 
 ## Sample data
 

@@ -29,3 +29,6 @@ jobs:
 
       - name: Run adapter tests (APS + S3)
         run: python tests/test_adapters.py
+
+      - name: Run public-safety tests (config, scoping, TTL)
+        run: python tests/test_safety.py

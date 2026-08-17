@@ -2,22 +2,35 @@
 
 Routes:
   POST /api/jobs                     upload a .ifc/.rvt/.gltf/.glb and start processing
-  POST /api/demo                     run the bundled sample IFC through the pipeline
-  GET  /api/jobs                     list all jobs
+  POST /api/demo                     run the bundled architecture sample
+  POST /api/demo/{sample}            run a bundled sample (architecture | structural)
+  GET  /api/jobs                     list jobs (scoped to the visitor in public demo mode)
   GET  /api/jobs/{id}                job detail (status, stages, logs, outputs)
   GET  /api/jobs/{id}/download/{f}   download a derivative (model.glb/.gltf/metadata.json)
-  GET  /api/health                   health check
+  GET  /api/compare/{idA}/{idB}      diff two processed models
+  GET  /api/health                   health check (incl. public-demo-mode + limits)
   GET  /                             dashboard (single-page UI)
+
+Public safety (see config.py):
+
+  - PUBLIC_DEMO_MODE disables arbitrary upload and exposes only bundled samples.
+  - Job history is scoped to a per-visitor cookie so unrelated visitors cannot
+    see each other's jobs.
+  - File-size, concurrency, and rate limits are enforced on job creation.
+  - A background thread expires old jobs/outputs (TTL cleanup).
 """
 from __future__ import annotations
 
 import os
 import json
+import time
 import tempfile
 import threading
+import uuid
+from collections import defaultdict, deque
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -25,6 +38,7 @@ import compare
 import pipeline
 import aps_adapter
 import storage
+import config
 from store import JobStore
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -32,6 +46,9 @@ PROJECT_ROOT = BASE_DIR.parent
 SAMPLES_DIR = PROJECT_ROOT / "samples"
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 DOCS_DIR = PROJECT_ROOT / "docs"
+
+CLIENT_COOKIE = "bim_client"
+CLIENT_COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
 
 def _resolve_data_dir() -> Path:
@@ -83,12 +100,87 @@ app = FastAPI(title="BIM Cloud Pipeline", version="0.1.0")
 
 ALLOWED = {".ifc", ".rvt", ".gltf", ".glb"}
 
+# --------------------------------------------------------------------------- #
+# Per-visitor identity + simple in-memory rate limiting
+# --------------------------------------------------------------------------- #
+
+_rate_windows: dict[str, deque] = defaultdict(deque)
+
+
+def _client_id(request: Request) -> str | None:
+    return request.cookies.get(CLIENT_COOKIE)
+
+
+def _set_client(response: Response, client_id: str):
+    response.set_cookie(
+        CLIENT_COOKIE,
+        client_id,
+        httponly=True,
+        samesite="lax",
+        max_age=CLIENT_COOKIE_MAX_AGE,
+    )
+
+
+def _ensure_client(request: Request, response: Response) -> str:
+    cid = _client_id(request)
+    if not cid:
+        cid = uuid.uuid4().hex
+        _set_client(response, cid)
+    return cid
+
+
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _check_rate_limit(request: Request):
+    """Sliding-window rate limit on job creation per client IP."""
+    now = time.time()
+    window = _rate_windows[_client_ip(request)]
+    while window and window[0] < now - 60:
+        window.popleft()
+    if len(window) >= config.MAX_JOBS_PER_MINUTE:
+        raise HTTPException(429, "Rate limit exceeded. Please wait a minute and try again.")
+    window.append(now)
+
+
+def _check_concurrency():
+    active = sum(
+        1 for j in store.list() if j["status"] in ("queued", "processing")
+    )
+    if active >= config.MAX_CONCURRENT_JOBS:
+        raise HTTPException(
+            429, f"Too many concurrent jobs (limit {config.MAX_CONCURRENT_JOBS}). Try again shortly."
+        )
+
+
+def _owns(job: dict | None, request: Request) -> bool:
+    if not job:
+        return False
+    if not config.PUBLIC_DEMO_MODE:
+        return True
+    return job.get("clientId") == _client_id(request)
+
+
+# --------------------------------------------------------------------------- #
+# Routes
+# --------------------------------------------------------------------------- #
 
 @app.get("/api/health")
 def health():
     return {
         "status": "ok",
         "service": "bim-cloud-pipeline",
+        "publicDemoMode": config.PUBLIC_DEMO_MODE,
+        "limits": {
+            "maxFileSizeMB": config.MAX_FILE_SIZE_MB,
+            "maxConcurrentJobs": config.MAX_CONCURRENT_JOBS,
+            "maxJobsPerMinute": config.MAX_JOBS_PER_MINUTE,
+            "jobTtlSeconds": config.JOB_TTL_SECONDS,
+        },
         "integrations": {
             "aps": aps_adapter.APSAdapter().configured,
             "s3": storage.S3Storage().configured,
@@ -97,31 +189,51 @@ def health():
 
 
 @app.get("/api/jobs")
-def list_jobs():
+def list_jobs(request: Request):
+    if config.PUBLIC_DEMO_MODE:
+        return store.list_for_client(_client_id(request))
     return store.list()
 
 
 @app.get("/api/jobs/{job_id}")
-def get_job(job_id: str):
+def get_job(job_id: str, request: Request):
     job = store.get(job_id)
-    if not job:
+    if not _owns(job, request):
         raise HTTPException(404, "job not found")
     return job
 
 
 @app.post("/api/jobs")
-def upload_job(file: UploadFile = File(...)):
+def upload_job(request: Request, response: Response, file: UploadFile | None = File(None)):
+    if config.PUBLIC_DEMO_MODE:
+        raise HTTPException(
+            403,
+            "Uploads are disabled in public demo mode. Run the bundled Architecture "
+            "or Structural sample instead.",
+        )
+    if file is None:
+        raise HTTPException(400, "No file provided. Upload a .ifc/.rvt/.gltf/.glb file.")
+
     name = file.filename or "upload.bin"
     ext = os.path.splitext(name)[1].lower()
     if ext not in ALLOWED:
         raise HTTPException(400, f"Unsupported format '{ext}'. Allowed: .ifc .rvt .gltf .glb")
 
-    job = store.create(name, 0, ext.lstrip('.'))
-    dest = UPLOADS_DIR / f"{job['id']}{ext}"
+    _check_rate_limit(request)
+    _check_concurrency()
+
     content = file.file.read()
+    if len(content) > config.MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            413,
+            f"File too large ({len(content)} bytes). Limit is {config.MAX_FILE_SIZE_MB} MB.",
+        )
+
+    client_id = _ensure_client(request, response)
+    job = store.create(name, len(content), ext.lstrip('.'), client_id=client_id)
+    dest = UPLOADS_DIR / f"{job['id']}{ext}"
     with open(dest, "wb") as fh:
         fh.write(content)
-    store.update(job["id"], sizeBytes=len(content))
 
     threading.Thread(
         target=pipeline.run_pipeline,
@@ -132,24 +244,27 @@ def upload_job(file: UploadFile = File(...)):
 
 
 @app.post("/api/demo")
-def demo_job():
-    return _demo("architecture")
+def demo_job(request: Request, response: Response):
+    return _demo("architecture", request, response)
 
 
 @app.post("/api/demo/{sample}")
-def demo_job_named(sample: str):
+def demo_job_named(sample: str, request: Request, response: Response):
     if sample not in ("architecture", "structural"):
         raise HTTPException(404, f"unknown sample '{sample}'")
-    return _demo(sample)
+    return _demo(sample, request, response)
 
 
-def _demo(sample: str):
+def _demo(sample: str, request: Request, response: Response):
+    _check_rate_limit(request)
+    _check_concurrency()
     name = {"architecture": "Building-Architecture.ifc",
             "structural": "Building-Structural.ifc"}[sample]
     path = SAMPLES_DIR / name
     if not path.exists():
         raise HTTPException(500, f"bundled sample {name} not found")
-    job = store.create(path.name, path.stat().st_size, "ifc")
+    client_id = _ensure_client(request, response)
+    job = store.create(path.name, path.stat().st_size, "ifc", client_id=client_id)
     threading.Thread(
         target=pipeline.run_pipeline,
         args=(job["id"], str(path), store, str(SAMPLES_DIR)),
@@ -159,9 +274,9 @@ def _demo(sample: str):
 
 
 @app.get("/api/jobs/{job_id}/download/{filename}")
-def download(job_id: str, filename: str):
+def download(job_id: str, filename: str, request: Request):
     job = store.get(job_id)
-    if not job:
+    if not _owns(job, request):
         raise HTTPException(404, "job not found")
     safe = {
         "model.glb", "model.gltf", "model.bin", "metadata.json",
@@ -174,9 +289,9 @@ def download(job_id: str, filename: str):
     return FileResponse(str(path), filename=filename)
 
 
-def _load_metadata(job_id: str):
+def _load_metadata(job_id: str, request: Request):
     job = store.get(job_id)
-    if not job:
+    if not _owns(job, request):
         raise HTTPException(404, f"job {job_id} not found")
     path = Path(store.output_dir(job_id)) / "metadata.json"
     if not path.exists():
@@ -189,10 +304,28 @@ def _load_metadata(job_id: str):
 
 
 @app.get("/api/compare/{id_a}/{id_b}")
-def compare_jobs(id_a: str, id_b: str):
-    meta_a = _load_metadata(id_a)
-    meta_b = _load_metadata(id_b)
+def compare_jobs(id_a: str, id_b: str, request: Request):
+    meta_a = _load_metadata(id_a, request)
+    meta_b = _load_metadata(id_b, request)
     return compare.compare_models(meta_a, meta_b)
+
+
+# --------------------------------------------------------------------------- #
+# TTL cleanup (background)
+# --------------------------------------------------------------------------- #
+
+def _cleanup_loop():
+    while True:
+        time.sleep(config.CLEANUP_INTERVAL_SECONDS)
+        try:
+            removed = store.cleanup(config.JOB_TTL_SECONDS)
+            if removed:
+                print(f"[cleanup] expired {removed} job(s)", flush=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[cleanup] error: {exc}", flush=True)
+
+
+threading.Thread(target=_cleanup_loop, daemon=True).start()
 
 
 if DOCS_DIR.exists():

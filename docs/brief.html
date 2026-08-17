@@ -102,9 +102,46 @@ no single, simple pipeline that delivers both.</p>
 <li>Upload + process <code>.ifc</code> → real GLB + GLTF + metadata JSON.</li>
 <li>Job status, stage progress and logs are live.</li>
 <li>3D model is viewable in-browser; metadata is structured and queryable.</li>
-<li>Revit <code>.rvt</code> route is clearly handled (APS integration stub + demo fallback).</li>
+<li>Revit <code>.rvt</code> route is clearly handled: real Autodesk APS adapter
+  (implemented, unit-tested with mocks, not yet live-validated) plus a demo
+  fallback when credentials are absent.</li>
 <li>Responsive UI; no blocking console errors.</li>
-</ul></main>
+</ul>
+<h2 id="capability-status">Capability status</h2>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IFC → GLB/GLTF + metadata</td>
+<td><strong>Live-validated</strong> (real buildingSMART samples)</td>
+</tr>
+<tr>
+<td>glTF/GLB normalisation</td>
+<td><strong>Live-validated</strong></td>
+</tr>
+<tr>
+<td>Multi-model compare</td>
+<td><strong>Live-validated</strong> (4 common / 14 added / 15 removed)</td>
+</tr>
+<tr>
+<td>Dashboard + viewer</td>
+<td><strong>Live-validated</strong></td>
+</tr>
+<tr>
+<td>Revit <code>.rvt</code> → APS</td>
+<td><strong>Implemented + unit-tested (mocked)</strong> — not live-validated (needs live APS account)</td>
+</tr>
+<tr>
+<td>S3 storage</td>
+<td><strong>Implemented + unit-tested (mocked)</strong> — not live-validated (needs live AWS credentials)</td>
+</tr>
+</tbody>
+</table></main>
 </div>
 <script>
   mermaid.initialize({ startOnLoad:false, theme:'dark', securityLevel:'loose' });

@@ -60,6 +60,8 @@ body { margin:0; background:var(--bg); color:var(--text);
   </aside>
   <main class="content"><h1 id="acceptance_criteria-bim-cloud-pipeline-poc">ACCEPTANCE_CRITERIA — BIM Cloud Pipeline POC</h1>
 <p>Each criterion is testable and mapped to a verification method.</p>
+<p><strong>Status legend:</strong> ✅ live-validated · 🧪 implemented + unit-tested (mocked) ·
+📝 implemented (not yet exercised against an external service).</p>
 <h2 id="functional">Functional</h2>
 <table>
 <thead>
@@ -67,6 +69,7 @@ body { margin:0; background:var(--bg); color:var(--text);
 <th>#</th>
 <th>Criterion</th>
 <th>Verify</th>
+<th>Status</th>
 </tr>
 </thead>
 <tbody>
@@ -74,41 +77,61 @@ body { margin:0; background:var(--bg); color:var(--text);
 <td>A1</td>
 <td>Uploading a <code>.ifc</code> file creates a job and processes it to completion</td>
 <td>POST /api/jobs (multipart) → status <code>completed</code></td>
+<td>✅</td>
 </tr>
 <tr>
 <td>A2</td>
 <td>Pipeline emits <code>model.glb</code>, <code>model.gltf</code> (+ <code>.bin</code>) and <code>metadata.json</code></td>
 <td>download endpoints return 200 with correct content-type</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>A3</td>
 <td>GLB is a valid binary glTF (viewable in Three.js GLTFLoader)</td>
 <td>in-browser viewer renders geometry</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>A4</td>
 <td>metadata.json is valid JSON with project, elements, properties, quantities, geometry stats</td>
 <td>parse + inspect fields</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>A5</td>
 <td>Elements carry GlobalId, name, category, material, property sets, quantities, containment</td>
 <td>sample wall/slab show <code>Pset_*</code> / <code>Qto_*</code></td>
+<td>✅</td>
 </tr>
 <tr>
 <td>A6</td>
 <td>Revit <code>.rvt</code> is recognised; without APS credentials it uses the documented demo fallback</td>
 <td>POST a <code>.rvt</code> → completed with fallback note</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>A7</td>
 <td>Unsupported formats are rejected with a clear message</td>
 <td>POST <code>.zip</code> → 400</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>A8</td>
 <td>One-click demo runs the bundled sample end-to-end</td>
 <td>POST /api/demo → completed</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>A9</td>
+<td>Public demo mode disables arbitrary uploads and exposes only bundled samples</td>
+<td><code>PUBLIC_DEMO_MODE=1</code> → <code>POST /api/jobs</code> returns 403, <code>/api/demo/*</code> works</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>A10</td>
+<td>Public demo mode scopes job history to the requesting visitor</td>
+<td>two clients (different cookies) see only their own jobs</td>
+<td>✅</td>
 </tr>
 </tbody>
 </table>
@@ -119,6 +142,7 @@ body { margin:0; background:var(--bg); color:var(--text);
 <th>#</th>
 <th>Criterion</th>
 <th>Verify</th>
+<th>Status</th>
 </tr>
 </thead>
 <tbody>
@@ -126,26 +150,37 @@ body { margin:0; background:var(--bg); color:var(--text);
 <td>U1</td>
 <td>Dashboard shows live job list with status</td>
 <td>poll UI</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>U2</td>
 <td>Detail view shows stages, logs, downloads, API snippets</td>
 <td>open a job</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>U3</td>
 <td>3D viewer loads the GLB and auto-frames</td>
 <td>browser screenshot</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>U4</td>
 <td>UI is responsive at 320/375/768/1280 px, no horizontal overflow</td>
 <td>screenshot at widths</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>U5</td>
 <td>Touch targets ≥ 44 px</td>
 <td>button/dropzone styling</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>U6</td>
+<td>Public demo mode shows a visible "no confidential models" warning</td>
+<td><code>PUBLIC_DEMO_MODE=1</code> → banner visible</td>
+<td>✅</td>
 </tr>
 </tbody>
 </table>
@@ -156,6 +191,7 @@ body { margin:0; background:var(--bg); color:var(--text);
 <th>#</th>
 <th>Criterion</th>
 <th>Verify</th>
+<th>Status</th>
 </tr>
 </thead>
 <tbody>
@@ -163,24 +199,42 @@ body { margin:0; background:var(--bg); color:var(--text);
 <td>N1</td>
 <td>No blocking console errors</td>
 <td>browser console</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>N2</td>
 <td>Pipeline is idempotent and re-runnable</td>
 <td>run demo twice</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>N3</td>
 <td>Real open-source data used (no dummy data)</td>
 <td>samples provenance in README</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>N4</td>
+<td>File-size / concurrency / rate limits enforced on job creation</td>
+<td>exceed each limit → 413 / 429</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>N5</td>
+<td>Finished jobs/outputs are auto-expired (TTL cleanup)</td>
+<td><code>JOB_TTL_SECONDS</code> &gt; 0 → old jobs removed</td>
+<td>✅</td>
 </tr>
 </tbody>
 </table>
 <h2 id="out-of-scope-for-poc">Out of scope for POC</h2>
 <ul>
-<li>Live Autodesk APS (Forge/Model Derivative) integration — stubbed, requires
-  <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code>.</li>
-<li>Multi-tenant auth, billing, cloud storage (S3/GCS).</li>
+<li><strong>Live validation of the Autodesk APS (Model Derivative) adapter</strong> — the
+  adapter is fully implemented and unit-tested with mocks, but exercising it
+  against a real APS account requires <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code>.</li>
+<li><strong>Live validation of S3 storage</strong> — implemented and unit-tested with mocks;
+  requires live AWS credentials.</li>
+<li>Multi-tenant auth, billing.</li>
 <li>Full IFC4 geometry engines (BREP/CSG) — tessellated + extruded profiles only.</li>
 </ul></main>
 </div>

@@ -5,6 +5,16 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --app-dir backend
     envVars:
+      - key: PUBLIC_DEMO_MODE
+        sync: false
+      - key: MAX_FILE_SIZE_MB
+        sync: false
+      - key: MAX_CONCURRENT_JOBS
+        sync: false
+      - key: MAX_JOBS_PER_MINUTE
+        sync: false
+      - key: JOB_TTL_SECONDS
+        sync: false
       - key: APS_CLIENT_ID
         sync: false
       - key: APS_CLIENT_SECRET

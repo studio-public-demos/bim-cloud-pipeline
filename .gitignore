@@ -8,6 +8,7 @@ env/
 
 # Runtime-generated data (jobs, outputs, uploads, secrets)
 data/
+.data-*/
 *.db
 *.sqlite3
 

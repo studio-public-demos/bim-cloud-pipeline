@@ -5,9 +5,10 @@ Implements the APS Model Derivative flow for Revit files:
     authenticate (2-legged OAuth)
       -> create transient bucket
       -> upload the .rvt
-      -> POST translate job (svf2 + gltf outputs)
+      -> POST translate job (IFC output — Revit's own IFC export)
       -> poll the manifest until success
-      -> download the glTF derivative (obj fallback -> glb)
+      -> download the IFC derivative
+      -> feed the IFC through the native IFC parser (see pipeline.py)
 
 Requires APS_CLIENT_ID and APS_CLIENT_SECRET. When they are absent the
 pipeline falls back to a bundled representative model (see pipeline.py).

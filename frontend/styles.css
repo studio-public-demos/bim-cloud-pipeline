@@ -277,6 +277,21 @@ footer a { color: var(--accent); text-decoration: none; }
 
 .hidden { display: none !important; }
 
+/* Public demo banner */
+.public-demo-banner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 12px 18px;
+  margin-top: 16px;
+  background: #2a1f0e;
+  border: 1px solid #6b4e12;
+  border-radius: 10px;
+  color: #f6d98a;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.public-demo-banner strong { color: #ffd76a; }
+
 @media (max-width: 820px) {
   .detail-body { grid-template-columns: 1fr; }
   .meta-col { border-left: none; border-top: 1px solid var(--border); }

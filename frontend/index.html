@@ -24,6 +24,13 @@
     <div class="integrations" id="integrations" title="Integration status"></div>
   </header>
 
+  <div id="publicDemoBanner" class="public-demo-banner hidden" role="alert">
+    <strong>Public demo mode.</strong> Uploads are disabled — run the bundled
+    Architecture or Structural sample below. Never upload confidential or
+    proprietary models to this demo. Job history is private to your session and
+    outputs are automatically deleted.
+  </div>
+
   <main>
     <!-- Upload -->
     <section class="card upload-card">
@@ -31,6 +38,7 @@
       <p class="muted">Drop a Revit (<code>.rvt</code>), IFC (<code>.ifc</code>) or glTF (<code>.gltf/.glb</code>) file.
         It is processed in the cloud into an optimised GLB/GLTF plus structured BIM metadata JSON.</p>
 
+      <div id="uploadZone">
       <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload file">
         <input type="file" id="fileInput" accept=".ifc,.rvt,.gltf,.glb" hidden />
         <div class="dropzone-inner">
@@ -38,6 +46,7 @@
           <div class="dz-title">Drag & drop a file here</div>
           <div class="dz-sub">or <span class="link">browse</span> — .ifc · .rvt · .gltf · .glb</div>
         </div>
+      </div>
       </div>
 
       <div class="demo-row">

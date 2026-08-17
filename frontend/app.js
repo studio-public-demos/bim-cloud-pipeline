@@ -544,8 +544,17 @@ async function refreshIntegrations() {
     const it = h.integrations || {};
     const chip = (label, on) =>
       `<span class="iteg ${on ? 'on' : 'off'}"><span class="dot"></span>${label}</span>`;
+    const demo = !!h.publicDemoMode;
     $('#integrations').innerHTML =
-      chip('APS', !!it.aps) + chip('S3', !!it.s3);
+      chip('APS', !!it.aps) + chip('S3', !!it.s3) +
+      (demo ? '<span class="iteg on"><span class="dot"></span>public demo</span>' : '');
+
+    // Public demo mode: surface the confidential-data warning and disable
+    // arbitrary upload (only bundled samples are exposed).
+    const banner = $('#publicDemoBanner');
+    const uploadZone = $('#uploadZone');
+    if (banner) banner.classList.toggle('hidden', !demo);
+    if (uploadZone) uploadZone.style.display = demo ? 'none' : '';
   } catch (err) {
     $('#integrations').innerHTML = '<span class="iteg off"><span class="dot"></span>offline</span>';
   }

@@ -3,17 +3,20 @@
 All knobs are environment-variable driven with safe defaults.
 
 ``PUBLIC_DEMO_MODE`` hardens a deployment that is reachable by arbitrary
-visitors on the internet:
+visitors on the internet **without disabling the real POC experience**:
 
-  - arbitrary file upload is disabled
-  - only the bundled Architecture / Structural samples can be run
-  - job history is scoped to the requesting visitor (per-visitor cookie)
-  - file-size, concurrency, and rate limits are enforced
+  - uploads remain ENABLED (so visitors get a real POC), but are bounded by
+    file-size, concurrency, and rate limits
+  - job history is scoped to the requesting visitor (per-visitor cookie), so
+    unrelated visitors cannot see each other's jobs, downloads, or comparisons
   - completed jobs/outputs are automatically expired (TTL cleanup)
+  - the dashboard shows a visible "never upload confidential models" warning
+
+To fully disable uploads (samples-only mode), set ``DISABLE_UPLOADS=1``.
 
 Public demo mode is **on by default on hosted platforms** (Render, Hugging Face
 Spaces, etc.) and **off by default locally**. Override explicitly with
-``PUBLIC_DEMO_MODE=0`` (local-style) or ``PUBLIC_DEMO_MODE=1`` (force on).
+``PUBLIC_DEMO_MODE=0`` / ``PUBLIC_DEMO_MODE=1``.
 """
 from __future__ import annotations
 
@@ -55,11 +58,16 @@ def _is_hosted_platform() -> bool:
     return any(os.environ.get(k) for k in markers)
 
 
-# When True, disable arbitrary uploads and expose only bundled samples.
+# When True, enable public-safety features (per-visitor history scoping +
+# confidential-data warning). Uploads stay ENABLED for a real POC experience.
 # Safe-by-default on hosted/public platforms; off locally unless enabled.
 PUBLIC_DEMO_MODE = _bool("PUBLIC_DEMO_MODE", _is_hosted_platform())
 
-# Hard limits (enforced regardless of mode; they gate re-enabling public uploads).
+# When True, fully disable arbitrary uploads (samples-only). Off by default so
+# the public deployment remains a working POC.
+DISABLE_UPLOADS = _bool("DISABLE_UPLOADS", False)
+
+# Hard limits (always enforced — they gate exposing public uploads safely).
 MAX_FILE_SIZE_MB = _int("MAX_FILE_SIZE_MB", 50)
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 MAX_CONCURRENT_JOBS = _int("MAX_CONCURRENT_JOBS", 4)

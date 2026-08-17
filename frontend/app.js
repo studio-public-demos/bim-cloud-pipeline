@@ -549,12 +549,13 @@ async function refreshIntegrations() {
       chip('APS', !!it.aps) + chip('S3', !!it.s3) +
       (demo ? '<span class="iteg on"><span class="dot"></span>public demo</span>' : '');
 
-    // Public demo mode: surface the confidential-data warning and disable
-    // arbitrary upload (only bundled samples are exposed).
+    // Public demo mode: show the confidential-data warning. Uploads stay
+    // enabled (real POC); they are hidden only if explicitly disabled.
     const banner = $('#publicDemoBanner');
     const uploadZone = $('#uploadZone');
+    const uploadsEnabled = h.uploadsEnabled !== false;
     if (banner) banner.classList.toggle('hidden', !demo);
-    if (uploadZone) uploadZone.style.display = demo ? 'none' : '';
+    if (uploadZone) uploadZone.style.display = uploadsEnabled ? '' : 'none';
   } catch (err) {
     $('#integrations').innerHTML = '<span class="iteg off"><span class="dot"></span>offline</span>';
   }

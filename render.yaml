@@ -7,6 +7,8 @@ services:
     envVars:
       - key: PUBLIC_DEMO_MODE
         sync: false
+      - key: DISABLE_UPLOADS
+        sync: false
       - key: MAX_FILE_SIZE_MB
         sync: false
       - key: MAX_CONCURRENT_JOBS

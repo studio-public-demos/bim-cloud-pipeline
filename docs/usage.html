@@ -340,7 +340,12 @@ it requires a live Autodesk APS account. See <code>README.md</code> → <em>Capa
 <tr>
 <td><code>PUBLIC_DEMO_MODE</code></td>
 <td>Public safety</td>
-<td><code>1</code> disables uploads, exposes only bundled samples, scopes job history per visitor</td>
+<td><code>1</code> scopes job history per visitor and shows the confidential-data warning (on by default on hosted platforms)</td>
+</tr>
+<tr>
+<td><code>DISABLE_UPLOADS</code></td>
+<td>Public safety</td>
+<td><code>1</code> fully blocks uploads (samples-only). Off by default — uploads are enabled for a real POC</td>
 </tr>
 <tr>
 <td><code>MAX_FILE_SIZE_MB</code></td>
@@ -384,8 +389,9 @@ it requires a live Autodesk APS account. See <code>README.md</code> → <em>Capa
 Hugging Face Spaces, etc.), public demo mode is <strong>on by default</strong>. Force it on
 with <code>PUBLIC_DEMO_MODE=1</code>, or off with <code>PUBLIC_DEMO_MODE=0</code>. This:</p>
 <ol>
-<li><strong>Disables arbitrary uploads</strong> — <code>POST /api/jobs</code> returns <code>403</code>; only the
-   bundled Architecture / Structural samples can be run.</li>
+<li><strong>Keeps uploads enabled</strong> — visitors get a real POC (upload <code>.ifc</code>/<code>.rvt</code>/
+   <code>.gltf</code>/<code>.glb</code>, bounded by limits). To run samples-only, set
+   <code>DISABLE_UPLOADS=1</code>.</li>
 <li><strong>Scopes job history</strong> — each visitor sees only the jobs they created (a
    per-session cookie), so unrelated visitors cannot browse the global job list,
    open others' jobs, download their outputs, or compare their models.</li>

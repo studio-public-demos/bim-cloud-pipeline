@@ -200,9 +200,10 @@ body { margin:0; background:var(--bg); color:var(--text);
 <li><strong>Compare view</strong> - <em>implemented</em>. <code>GET /api/compare/{idA}/{idB}</code> diffs two
   models (<code>backend/compare.py</code>) and the dashboard renders side-by-side viewers
   plus a metadata diff table.</li>
-<li><strong>Public demo mode</strong> - <em>implemented</em>. <code>PUBLIC_DEMO_MODE=1</code> disables uploads,
-  exposes only bundled samples, scopes job history per visitor, and enables
-  limits + TTL cleanup.</li>
+<li><strong>Public demo mode</strong> - <em>implemented</em>. <code>PUBLIC_DEMO_MODE=1</code> (on by default on
+  hosted platforms) scopes job history per visitor, shows the confidential-data
+  warning, and keeps uploads ENABLED (bounded by limits + TTL cleanup).
+  <code>DISABLE_UPLOADS=1</code> switches to samples-only mode.</li>
 </ul></main>
 </div>
 <script>

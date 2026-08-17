@@ -38,11 +38,13 @@ def test_config_public_demo_on():
 
 
 def test_config_hosted_default_on():
-    # On a hosted platform (e.g. Render), public demo mode defaults to ON.
+    # On a hosted platform (e.g. Render), public demo mode defaults to ON,
+    # but uploads remain ENABLED for the real POC experience.
     with mock.patch.dict(os.environ, {"RENDER": "true"}, clear=True):
         import importlib
         importlib.reload(config)
         assert config.PUBLIC_DEMO_MODE is True
+        assert config.DISABLE_UPLOADS is False
     # Explicit override still wins.
     with mock.patch.dict(os.environ, {"RENDER": "true", "PUBLIC_DEMO_MODE": "0"}, clear=True):
         importlib.reload(config)
@@ -53,7 +55,16 @@ def test_config_hosted_default_on():
         importlib.reload(config)
         assert config.PUBLIC_DEMO_MODE is True
     importlib.reload(config)
-    print("ok config hosted default on")
+    print("ok config hosted default on (uploads enabled)")
+
+
+def test_config_disable_uploads():
+    with mock.patch.dict(os.environ, {"DISABLE_UPLOADS": "1"}, clear=True):
+        import importlib
+        importlib.reload(config)
+        assert config.DISABLE_UPLOADS is True
+    importlib.reload(config)
+    print("ok config disable uploads")
 
 
 def test_store_client_scoping():
@@ -89,6 +100,7 @@ if __name__ == "__main__":
     test_config_defaults()
     test_config_public_demo_on()
     test_config_hosted_default_on()
+    test_config_disable_uploads()
     test_store_client_scoping()
     test_store_ttl_cleanup()
     print("\nALL SAFETY TESTS PASSED")

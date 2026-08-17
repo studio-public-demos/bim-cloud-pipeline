@@ -99,9 +99,10 @@ GitHub Pages). Two easy options:</p>
 <li>Point it at this repo (or upload the files) — the included <code>Dockerfile</code>
    listens on port 7860, which HF Spaces requires.</li>
 <li>In <strong>Settings → Secrets</strong>, add:
-   - <code>PUBLIC_DEMO_MODE=1</code> (required for any public deployment — disables uploads, scopes job history per visitor)
    - <code>APS_CLIENT_ID</code> and <code>APS_CLIENT_SECRET</code> (for real Revit conversion)
-   - <code>AWS_ACCESS_KEY_ID</code>, <code>AWS_SECRET_ACCESS_KEY</code>, <code>AWS_S3_BUCKET</code> (optional, S3)</li>
+   - <code>AWS_ACCESS_KEY_ID</code>, <code>AWS_SECRET_ACCESS_KEY</code>, <code>AWS_S3_BUCKET</code> (optional, S3)
+   - <code>PUBLIC_DEMO_MODE=1</code> (optional — on by default on hosted platforms; scopes job history per visitor and shows the confidential-data warning)
+   - <code>DISABLE_UPLOADS=1</code> (optional — samples-only mode; by default uploads are enabled for a real POC)</li>
 <li>The Space builds and serves the app at <code>https://&lt;user&gt;-&lt;space&gt;.hf.space</code>.</li>
 </ol>
 <p><strong>Render</strong> — alternative Python host. Use the included <code>render.yaml</code> blueprint
@@ -211,7 +212,12 @@ Without these, outputs stay on local disk (<code>backend/storage.py</code>).</p>
 <tr>
 <td><code>PUBLIC_DEMO_MODE</code></td>
 <td>Public safety</td>
-<td><code>1</code> disables uploads, exposes only bundled samples, scopes job history per visitor</td>
+<td><code>1</code> scopes job history per visitor and shows the confidential-data warning (on by default on hosted platforms)</td>
+</tr>
+<tr>
+<td><code>DISABLE_UPLOADS</code></td>
+<td>Public safety</td>
+<td><code>1</code> fully blocks uploads (samples-only). Off by default — uploads are enabled for a real POC</td>
 </tr>
 <tr>
 <td><code>MAX_FILE_SIZE_MB</code></td>
@@ -255,8 +261,9 @@ Without these, outputs stay on local disk (<code>backend/storage.py</code>).</p>
 Spaces, etc.) and <strong>off by default locally</strong>. Set <code>PUBLIC_DEMO_MODE=1</code> to force
 it on, or <code>PUBLIC_DEMO_MODE=0</code> to force it off. It:</p>
 <ol>
-<li><strong>Disables arbitrary uploads</strong> (<code>POST /api/jobs</code> → 403). Only the bundled
-   Architecture and Structural samples can be run.</li>
+<li><strong>Keeps uploads enabled</strong> — visitors get a real POC: upload <code>.ifc</code>/<code>.rvt</code>/
+   <code>.gltf</code>/<code>.glb</code> (bounded by the limits below). To run samples-only, set
+   <code>DISABLE_UPLOADS=1</code>.</li>
 <li><strong>Scopes job history</strong> to the requesting visitor (per-session cookie), so
    unrelated visitors cannot see each other's jobs, downloads, or comparisons.</li>
 <li><strong>Enforces limits</strong> (file size, concurrency, rate) and <strong>TTL cleanup</strong>

@@ -239,7 +239,8 @@ The canonical `.rvt` workflow is:
 
 | Variable | Feature | Effect |
 |----------|---------|--------|
-| `PUBLIC_DEMO_MODE` | Public safety | `1` disables uploads, exposes only bundled samples, scopes job history per visitor |
+| `PUBLIC_DEMO_MODE` | Public safety | `1` scopes job history per visitor and shows the confidential-data warning (on by default on hosted platforms) |
+| `DISABLE_UPLOADS` | Public safety | `1` fully blocks uploads (samples-only). Off by default — uploads are enabled for a real POC |
 | `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `50`) |
 | `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `4`) |
 | `MAX_JOBS_PER_MINUTE` | Rate limit | Max job creations per minute per IP (default `10`) |
@@ -254,8 +255,9 @@ When the pipeline is reachable by arbitrary visitors on the internet (Render,
 Hugging Face Spaces, etc.), public demo mode is **on by default**. Force it on
 with `PUBLIC_DEMO_MODE=1`, or off with `PUBLIC_DEMO_MODE=0`. This:
 
-1. **Disables arbitrary uploads** — `POST /api/jobs` returns `403`; only the
-   bundled Architecture / Structural samples can be run.
+1. **Keeps uploads enabled** — visitors get a real POC (upload `.ifc`/`.rvt`/
+   `.gltf`/`.glb`, bounded by limits). To run samples-only, set
+   `DISABLE_UPLOADS=1`.
 2. **Scopes job history** — each visitor sees only the jobs they created (a
    per-session cookie), so unrelated visitors cannot browse the global job list,
    open others' jobs, download their outputs, or compare their models.

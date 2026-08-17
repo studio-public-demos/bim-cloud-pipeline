@@ -13,9 +13,9 @@ Routes:
 
 Public safety (see config.py):
 
-  - PUBLIC_DEMO_MODE disables arbitrary upload and exposes only bundled samples.
-  - Job history is scoped to a per-visitor cookie so unrelated visitors cannot
-    see each other's jobs.
+  - PUBLIC_DEMO_MODE scopes job history to a per-visitor cookie and surfaces the
+    confidential-data warning; uploads stay ENABLED for a real POC experience.
+  - DISABLE_UPLOADS (optional) fully blocks arbitrary uploads (samples-only).
   - File-size, concurrency, and rate limits are enforced on job creation.
   - A background thread expires old jobs/outputs (TTL cleanup).
 """
@@ -175,6 +175,7 @@ def health():
         "status": "ok",
         "service": "bim-cloud-pipeline",
         "publicDemoMode": config.PUBLIC_DEMO_MODE,
+        "uploadsEnabled": not config.DISABLE_UPLOADS,
         "limits": {
             "maxFileSizeMB": config.MAX_FILE_SIZE_MB,
             "maxConcurrentJobs": config.MAX_CONCURRENT_JOBS,
@@ -205,11 +206,11 @@ def get_job(job_id: str, request: Request):
 
 @app.post("/api/jobs")
 def upload_job(request: Request, response: Response, file: UploadFile | None = File(None)):
-    if config.PUBLIC_DEMO_MODE:
+    if config.DISABLE_UPLOADS:
         raise HTTPException(
             403,
-            "Uploads are disabled in public demo mode. Run the bundled Architecture "
-            "or Structural sample instead.",
+            "Uploads are disabled. Run the bundled Architecture or Structural "
+            "sample instead.",
         )
     if file is None:
         raise HTTPException(400, "No file provided. Upload a .ifc/.rvt/.gltf/.glb file.")

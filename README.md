@@ -48,9 +48,10 @@ GitHub Pages). Two easy options:
 2. Point it at this repo (or upload the files) — the included `Dockerfile`
    listens on port 7860, which HF Spaces requires.
 3. In **Settings → Secrets**, add:
-   - `PUBLIC_DEMO_MODE=1` (required for any public deployment — disables uploads, scopes job history per visitor)
    - `APS_CLIENT_ID` and `APS_CLIENT_SECRET` (for real Revit conversion)
    - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` (optional, S3)
+   - `PUBLIC_DEMO_MODE=1` (optional — on by default on hosted platforms; scopes job history per visitor and shows the confidential-data warning)
+   - `DISABLE_UPLOADS=1` (optional — samples-only mode; by default uploads are enabled for a real POC)
 4. The Space builds and serves the app at `https://<user>-<space>.hf.space`.
 
 **Render** — alternative Python host. Use the included `render.yaml` blueprint
@@ -147,7 +148,8 @@ Without these, outputs stay on local disk (`backend/storage.py`).
 
 | Variable | Feature | Effect |
 |----------|---------|--------|
-| `PUBLIC_DEMO_MODE` | Public safety | `1` disables uploads, exposes only bundled samples, scopes job history per visitor |
+| `PUBLIC_DEMO_MODE` | Public safety | `1` scopes job history per visitor and shows the confidential-data warning (on by default on hosted platforms) |
+| `DISABLE_UPLOADS` | Public safety | `1` fully blocks uploads (samples-only). Off by default — uploads are enabled for a real POC |
 | `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `50`) |
 | `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `4`) |
 | `MAX_JOBS_PER_MINUTE` | Rate limit | Max job creations per minute per IP (default `10`) |
@@ -162,8 +164,9 @@ Public demo mode is **on by default on hosted platforms** (Render, Hugging Face
 Spaces, etc.) and **off by default locally**. Set `PUBLIC_DEMO_MODE=1` to force
 it on, or `PUBLIC_DEMO_MODE=0` to force it off. It:
 
-1. **Disables arbitrary uploads** (`POST /api/jobs` → 403). Only the bundled
-   Architecture and Structural samples can be run.
+1. **Keeps uploads enabled** — visitors get a real POC: upload `.ifc`/`.rvt`/
+   `.gltf`/`.glb` (bounded by the limits below). To run samples-only, set
+   `DISABLE_UPLOADS=1`.
 2. **Scopes job history** to the requesting visitor (per-session cookie), so
    unrelated visitors cannot see each other's jobs, downloads, or comparisons.
 3. **Enforces limits** (file size, concurrency, rate) and **TTL cleanup**

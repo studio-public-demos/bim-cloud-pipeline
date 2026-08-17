@@ -16,7 +16,7 @@ Each criterion is testable and mapped to a verification method.
 | A6 | Revit `.rvt` is recognised; without APS credentials it fails with a clear error (no sample substitution) | POST a `.rvt` → `failed` with "requires Autodesk APS credentials" | ✅ |
 | A7 | Unsupported formats are rejected with a clear message | POST `.zip` → 400 | ✅ |
 | A8 | One-click demo runs the bundled sample end-to-end | POST /api/demo → completed | ✅ |
-| A9 | Public demo mode disables arbitrary uploads and exposes only bundled samples | `PUBLIC_DEMO_MODE=1` → `POST /api/jobs` returns 403, `/api/demo/*` works | ✅ |
+| A9 | Public demo mode keeps uploads enabled (real POC) with limits + per-visitor scoping; `DISABLE_UPLOADS=1` makes it samples-only | upload `.ifc` → `completed`; `DISABLE_UPLOADS=1` → `POST /api/jobs` returns 403, `/api/demo/*` works | ✅ |
 | A10 | Public demo mode scopes job history to the requesting visitor | two clients (different cookies) see only their own jobs | ✅ |
 
 ## UX

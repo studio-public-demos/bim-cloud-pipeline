@@ -123,8 +123,8 @@ body { margin:0; background:var(--bg); color:var(--text);
 </tr>
 <tr>
 <td>A9</td>
-<td>Public demo mode disables arbitrary uploads and exposes only bundled samples</td>
-<td><code>PUBLIC_DEMO_MODE=1</code> → <code>POST /api/jobs</code> returns 403, <code>/api/demo/*</code> works</td>
+<td>Public demo mode keeps uploads enabled (real POC) with limits + per-visitor scoping; <code>DISABLE_UPLOADS=1</code> makes it samples-only</td>
+<td>upload <code>.ifc</code> → <code>completed</code>; <code>DISABLE_UPLOADS=1</code> → <code>POST /api/jobs</code> returns 403, <code>/api/demo/*</code> works</td>
 <td>✅</td>
 </tr>
 <tr>

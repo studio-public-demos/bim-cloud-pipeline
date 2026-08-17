@@ -112,6 +112,7 @@ flowchart LR
 - **Compare view** - *implemented*. `GET /api/compare/{idA}/{idB}` diffs two
   models (`backend/compare.py`) and the dashboard renders side-by-side viewers
   plus a metadata diff table.
-- **Public demo mode** - *implemented*. `PUBLIC_DEMO_MODE=1` disables uploads,
-  exposes only bundled samples, scopes job history per visitor, and enables
-  limits + TTL cleanup.
+- **Public demo mode** - *implemented*. `PUBLIC_DEMO_MODE=1` (on by default on
+  hosted platforms) scopes job history per visitor, shows the confidential-data
+  warning, and keeps uploads ENABLED (bounded by limits + TTL cleanup).
+  `DISABLE_UPLOADS=1` switches to samples-only mode.

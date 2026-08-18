@@ -4,73 +4,113 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://www.python.org/)
 
-Upload **Revit / IFC** files, process them in the cloud, and download
-**GLB / GLTF** 3D models + **structured metadata JSON** for web, mobile,
-AR/VR and digital-twin applications.
+> **Turn IFC / Revit-derived BIM into optimized GLB/GLTF 3D assets and structured metadata for web, mobile, XR and digital-twin applications.**
 
-> The value is not just "convert BIM to 3D". It is making BIM data *usable*
-> where direct Revit/IFC support is heavy or unavailable.
+- **[Watch Demo](#reproduce-the-demo)** · **[Interactive Showcase](https://studio-public-demos.github.io/bim-cloud-pipeline-showcase/)** · **[Quick Start](#try-it-yourself)** · **[Architecture](#architecture)** · **[API](#api)** · **[Limitations](#limitations)** · **[Built with NebulaCloud Studio](#built-with-nebulacloud-studio)**
 
-This is a full-stack reference implementation — a working FastAPI backend with a
-dependency-free IFC parser, a mobile-first dashboard, a Three.js 3D viewer, a
-multi-model compare view, and credential-gated adapters for real Revit
-conversion (Autodesk APS) and S3 cloud storage. It ships with **real IFC sample
-data** (buildingSMART) and an automated test suite.
+---
 
-**Documentation:**
-- [USAGE.md](USAGE.md) — full how-to guide: install, dashboard walkthrough,
-  REST API, output schema, integration examples, troubleshooting.
-- **Browsable docs:** [studio-public-demos.github.io/bim-cloud-pipeline](https://studio-public-demos.github.io/bim-cloud-pipeline/) —
-  usage guide, architecture (with diagrams), product brief, and acceptance
-  criteria, deployed to GitHub Pages.
+## What this is
 
-## Quick start
+A **proof-of-concept / reference implementation** demonstrating BIM interoperability:
+take BIM input, run it through a cloud-style processing pipeline, and produce
+application-ready outputs — optimized **3D geometry** (GLB/GLTF) and **structured
+BIM metadata** (JSON) — plus a REST API, an interactive 3D viewer, and a
+side-by-side **model comparison** view.
 
-```bash
-# 1. (optional) create a venv and install
-pip install -r requirements.txt
+## What this is not
 
-# 2. run the API + dashboard
-python -m uvicorn main:app --host 127.0.0.1 --port 8765 --app-dir backend
+It is **not**:
 
-# 3. open http://127.0.0.1:8765
+- a replacement for Revit or any BIM authoring tool
+- an engineering-analysis or structural-simulation application
+- a contractual BIM validation / clash-detection system
+- a production document-management or multi-tenant SaaS platform
+- a production-deployment reference (no auth, billing, durable queues, tenant storage)
+
+The core capability being demonstrated is **not** "Revit → GLB". It is:
+
+> **Transforming BIM geometry and semantics into application-ready 3D assets, structured data and APIs for web, mobile, XR and digital-twin workflows.**
+
+## Canonical workflow
+
+IFC is the primary open workflow. Revit is an optional ingestion adapter.
+
+```text
+IFC ───────────────────────────────┐
+                                   │
+RVT → optional Autodesk APS → IFC ─┤
+                                   ▼
+                         BIM Cloud Pipeline
+                                   │
+                    geometry + BIM semantics
+                                   │
+                  ┌────────────────┼────────────────┐
+                  ▼                ▼                ▼
+              GLB/GLTF      metadata.json       REST API
+                  │                │                │
+                  └────────────────┼────────────────┘
+                                   ▼
+                Web · Mobile · AR/VR/XR · Digital Twin
 ```
 
-## Deployment (live demo)
+## Try it yourself
 
-The pipeline needs a Python backend (it cannot run on static hosting such as
-GitHub Pages). Two easy options:
+```bash
+git clone https://github.com/studio-public-demos/bim-cloud-pipeline.git
+cd bim-cloud-pipeline
 
-**Hugging Face Spaces (Docker)** — free, instant public URL, secrets as env vars:
+python -m venv .venv
+# Windows: .venv\Scripts\activate      macOS/Linux: source .venv/bin/activate
 
-1. On [huggingface.co](https://huggingface.co/new-space), create a new **Space**
-   with **Docker** as the SDK.
-2. Point it at this repo (or upload the files) — the included `Dockerfile`
-   listens on port 7860, which HF Spaces requires.
-3. In **Settings → Secrets**, add:
-   - `APS_CLIENT_ID` and `APS_CLIENT_SECRET` (for real Revit conversion)
-   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` (optional, S3)
-   - `PUBLIC_DEMO_MODE=1` (optional — on by default on hosted platforms; scopes job history per visitor and shows the confidential-data warning)
-   - `DISABLE_UPLOADS=1` (optional — samples-only mode; by default uploads are enabled for a real POC)
-4. The Space builds and serves the app at `https://<user>-<space>.hf.space`.
+pip install -r requirements.txt
+python -m uvicorn main:app --host 127.0.0.1 --port 8765 --app-dir backend
+```
 
-**Render** — alternative Python host. Use the included `render.yaml` blueprint
-(or `Deploy to Render`), then set the same environment variables in the
-dashboard.
+Then open **http://127.0.0.1:8765**.
 
-> Note: free tiers sleep after inactivity (cold start ~1 min) and use ephemeral
-> storage, so jobs/outputs don't survive restarts — fine for a demo. Keep the
-> APS **secret** as a server-side env var; never commit it or put it in the
-> frontend.
+## Reproduce the demo
+
+The exact sample models shown in the recorded demonstration are bundled in this
+repository — no downloads needed.
+
+1. Click **▶ Run architecture sample** — the job advances through
+   `Uploaded → Validated → Parsed → Geometry → Optimized → Metadata`.
+2. Inspect the generated **3D model** (drag to orbit, scroll to zoom).
+3. Open the **Metadata** tab and browse elements (IFC type, GlobalId, category, material).
+4. Download **model.glb** / **model.gltf** / **metadata.json**.
+5. Click **▶ Run structural sample**.
+6. In **Compare models**, pick Architecture vs Structural and click **Compare** —
+   two 3D viewers render side-by-side plus a metadata diff.
 
 ## What it does
 
 | Step | Detail |
 |------|--------|
 | Upload | `.ifc` `.rvt` `.gltf` `.glb` via drag-and-drop or REST |
-| Process | parse BIM geometry + semantics, build optimised triangle mesh |
+| Process | parse BIM geometry + semantics, build optimized triangle mesh |
 | Track | live job status, stage progress, processing logs |
-| Deliver | `model.glb`, `model.gltf` + `.bin`, `metadata.json` |
+| Deliver | `model.glb`, `model.gltf` (+ `.bin`), `metadata.json` |
+
+## Outputs explained
+
+**`model.glb` / `model.gltf`** — the lightweight visual/geometry representation.
+Optimized for web, mobile, Three.js, game engines, AR/VR/XR and digital-twin
+visualization. Units are metres (glTF standard), with per-element material colours.
+
+**`metadata.json`** — the structured semantic representation: GlobalId, IFC type,
+category, material, spatial containment, property sets (`Pset_*`), quantities
+(`Qto_*`) and geometry statistics.
+
+> **The GLB tells an application what the building looks like. The metadata tells it what the building means.**
+
+## Model comparison
+
+Running two models through the pipeline enables side-by-side comparison — the
+Architecture sample vs the Structural sample of the same building. The diff shows
+element/category counts, and added / removed / changed elements, demonstrating
+downstream workflows such as BIM coordination, design-revision intelligence,
+automated QA, change detection and digital-twin synchronization.
 
 ## API
 
@@ -78,7 +118,7 @@ dashboard.
 POST /api/jobs                     upload a file (multipart "file")
 POST /api/demo                     run the bundled architecture sample
 POST /api/demo/structural          run the bundled structural sample
-GET  /api/jobs                     list jobs
+GET  /api/jobs                     list jobs (scoped per visitor in public demo mode)
 GET  /api/jobs/{id}                job detail (status, stages, logs, outputs)
 GET  /api/jobs/{id}/download/model.glb      binary glTF
 GET  /api/jobs/{id}/download/model.gltf     glTF (+ .bin)
@@ -86,8 +126,6 @@ GET  /api/jobs/{id}/download/metadata.json  structured BIM metadata
 GET  /api/compare/{idA}/{idB}      diff two processed models
 GET  /api/health                   health check
 ```
-
-Example:
 
 ```bash
 curl -X POST http://127.0.0.1:8765/api/jobs -F "file=@model.ifc"
@@ -115,82 +153,76 @@ frontend (dashboard) ──► FastAPI (/api/jobs ...)
   with per-element vertex colours.
 - `backend/pipeline.py` — staged, logged processing with format routing.
 - `backend/store.py` — JSON-backed job store.
+- `backend/compare.py` — metadata diff for the compare view.
 - `frontend/` — mobile-first dashboard with a Three.js GLB viewer.
 
-## Revit (.rvt) route
+## Revit (.rvt) route and quota strategy
 
-Native `.rvt` parsing requires Autodesk APS (Model Derivative). The pipeline
-detects `.rvt` and:
+> **The Revit ingestion path is implemented as a credential-gated Autodesk Platform Services adapter. It translates RVT to an IFC derivative, after which the native BIM pipeline processes the IFC into GLB/GLTF and structured metadata. The adapter is code-complete and unit-tested/mocked, but live RVT processing depends on Autodesk APS credentials, quotas and service availability.**
 
-- if `APS_CLIENT_ID` / `APS_CLIENT_SECRET` are set → runs the **real APS
-  adapter** (`backend/aps_adapter.py`): authenticate (2-legged OAuth) → upload
-  to a transient bucket → translate to an **IFC derivative** (Revit's own IFC
-  export) → download the IFC → feed it through the **native IFC pipeline**
-  (`ifc_parser` + `glb_builder`) to produce GLB/GLTF + metadata;
-- otherwise → the job **fails with a clear error** telling the user to set APS
-  credentials (or upload IFC/glTF/GLB). The pipeline never substitutes a
-  bundled sample for an uploaded file.
-
-Canonical `.rvt` workflow:
-
-```
-.rvt ──► Autodesk APS Model Derivative ──► IFC derivative ──► native IFC pipeline ──► GLB/GLTF + metadata.json
+```text
+RVT
+↓
+Autodesk APS (Model Derivative)
+↓
+IFC derivative
+↓
+Native BIM Cloud Pipeline
+↓
+GLB/GLTF + metadata.json
 ```
 
-## Cloud storage (S3)
+Autodesk APS Model Derivative has limited quota and must **not** be consumed by
+anonymous public visitors. Therefore:
 
-Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_S3_BUCKET`
-(optional `AWS_REGION`) to publish each job's outputs to Amazon S3 and expose
-**presigned download URLs** on the job (`outputs.cloud`) and in the dashboard.
-Without these, outputs stay on local disk (`backend/storage.py`).
+- `ALLOW_RVT_UPLOAD=false` by default — live `.rvt` uploads are disabled with a
+  clear message pointing to IFC / bundled samples / local BYOC use.
+- **BYOC** (bring your own credentials) is supported for local and self-hosted
+  use: set `APS_CLIENT_ID` + `APS_CLIENT_SECRET` and `ALLOW_RVT_UPLOAD=1`.
+- There is **no** browser form to submit APS secrets — they are server-side only.
 
 ## Configuration (environment variables)
 
 | Variable | Feature | Effect |
 |----------|---------|--------|
-| `PUBLIC_DEMO_MODE` | Public safety | `1` scopes job history per visitor and shows the confidential-data warning (on by default on hosted platforms) |
-| `DISABLE_UPLOADS` | Public safety | `1` fully blocks uploads (samples-only). Off by default — uploads are enabled for a real POC |
-| `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `50`) |
-| `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `4`) |
+| `PUBLIC_DEMO_MODE` | Public safety | `1` scopes job history per visitor + confidential-data warning (auto-on hosted) |
+| `DISABLE_UPLOADS` | Public safety | `1` samples-only mode. Off by default — uploads enabled |
+| `ALLOW_RVT_UPLOAD` | Revit route | `1` enables live `.rvt` uploads via APS. **Off by default** (quota) |
+| `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `20`) |
+| `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `1`) |
 | `MAX_JOBS_PER_MINUTE` | Rate limit | Max job creations per minute per IP (default `10`) |
 | `JOB_TTL_SECONDS` | TTL cleanup | Auto-delete finished jobs/outputs after N seconds (default `3600`; `0` disables) |
-| `APS_CLIENT_ID` + `APS_CLIENT_SECRET` | Real Revit conversion | Enables the APS Model Derivative route for `.rvt` |
-| `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` + `AWS_S3_BUCKET` | Cloud storage | Publishes outputs to S3 with presigned URLs |
-| `AWS_REGION` (optional) | Cloud storage | S3 region (default `us-east-1`) |
+| `APS_CLIENT_ID` + `APS_CLIENT_SECRET` | Real Revit conversion | Enables the APS route for `.rvt` (BYOC) |
+| `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` + `AWS_S3_BUCKET` | Cloud storage | Publishes outputs to S3 with presigned URLs (optional) |
 
-### Public demo mode
+## Deployment
 
-Public demo mode is **on by default on hosted platforms** (Render, Hugging Face
-Spaces, etc.) and **off by default locally**. Set `PUBLIC_DEMO_MODE=1` to force
-it on, or `PUBLIC_DEMO_MODE=0` to force it off. It:
+The pipeline needs a Python backend (it cannot run on static hosting such as
+GitHub Pages).
 
-1. **Keeps uploads enabled** — visitors get a real POC: upload `.ifc`/`.rvt`/
-   `.gltf`/`.glb` (bounded by the limits below). To run samples-only, set
-   `DISABLE_UPLOADS=1`.
-2. **Scopes job history** to the requesting visitor (per-session cookie), so
-   unrelated visitors cannot see each other's jobs, downloads, or comparisons.
-3. **Enforces limits** (file size, concurrency, rate) and **TTL cleanup**
-   (finished jobs/outputs are deleted automatically).
-4. Shows a **visible warning** in the dashboard to never upload confidential
-   models.
+**Hugging Face Spaces (Docker)** — the recommended host for a public demo: the
+free tier provides generous memory for processing. The included `Dockerfile`
+listens on port 7860. Create a Space with **Docker** SDK, point it at this repo,
+and set secrets under **Settings → Secrets**.
 
-Always keep `APS_CLIENT_ID` / `APS_CLIENT_SECRET` and AWS credentials as
-server-side secrets; never commit them or expose them in the frontend.
+**Render** — use the included `render.yaml` blueprint. Note the free tier's
+~512 MB can be tight for large models; the POC defaults (`MAX_CONCURRENT_JOBS=1`,
+`MAX_FILE_SIZE_MB=20`, lazy-loaded heavy libraries) are tuned to keep memory bounded.
+
+> The hosted demo is **supplementary** to the local run. Free tiers sleep after
+> inactivity (cold start ~1 min) and use ephemeral storage.
 
 ## Capability status
 
-This section distinguishes what is *implemented* vs *mocked/unit-tested* vs
-*live-validated*, so the claim "it works" is precise.
-
 | Capability | Status |
 |-----------|--------|
-| IFC → GLB/GLTF + metadata (native parser) | **Live-validated** — real buildingSMART IFC4 samples processed end-to-end (Architecture: 19 elements → 270-triangle GLB, ~17 KB; Structural: 18 elements → 712-triangle GLB, ~43 KB) |
-| glTF/GLB normalisation | **Live-validated** — validated and re-exported through the derivative pipeline |
-| Multi-model compare (metadata diff) | **Live-validated** — Architecture vs Structural: 4 common / 14 added / 15 removed |
-| Job tracking, downloads, REST API | **Live-validated** — exercised via the dashboard and `curl` |
-| Responsive dashboard + Three.js viewer | **Live-validated** — 320/375/768/1280 px, WebGL renders both samples |
-| Revit `.rvt` → APS Model Derivative | **Implemented + unit-tested (mocked)** — real adapter code, verified with mocks; *not live-validated* (requires a live APS account) |
-| S3 cloud storage (presigned URLs) | **Implemented + unit-tested (mocked)** — *not live-validated* (requires live AWS credentials); falls back to local disk |
+| IFC → GLB/GLTF + metadata (native parser) | **Live-validated** — buildingSMART IFC4 samples end-to-end |
+| glTF/GLB normalisation | **Live-validated** |
+| Multi-model compare (metadata diff) | **Live-validated** — 4 common / 14 added / 15 removed |
+| Job tracking, downloads, REST API | **Live-validated** |
+| Responsive dashboard + Three.js viewer | **Live-validated** — 320/375/768/1280 px |
+| Revit `.rvt` → Autodesk APS | **Implemented + unit-tested (mocked)** — external-service-dependent (credentials/quota); not live-validated |
+| S3 cloud storage | **Implemented + unit-tested (mocked)** — external-service-dependent; falls back to local disk |
 
 ## Sample data
 
@@ -199,10 +231,24 @@ IFC4 samples (single-family house, architectural + structural discipline views)
 from the buildingSMART [Sample-Test-Files](https://github.com/buildingSMART/Sample-Test-Files)
 repository, licensed for open use. No dummy data.
 
-## Notes / limitations
+## Limitations
 
-- Fidelity: illustrative / functional. Geometry covers tessellated facesets and
-  extruded profiles (rectangle / arbitrary closed / circle); advanced BREP/CSG
-  is out of scope.
-- Suitable for: viewing, downstream web/AR/VR/twin prototyping, API integration.
-- Not suitable for: engineering analysis or legal documentation.
+- **Fidelity:** illustrative / functional. Geometry covers tessellated facesets and
+  extruded profiles (rectangle / arbitrary closed / circle); advanced BREP/CSG is
+  out of scope.
+- **Suitable for:** viewing, downstream web/AR/VR/digital-twin prototyping, API
+  integration, and model comparison.
+- **Not suitable for:** engineering analysis, contractual validation, or legal
+  documentation.
+- Auth, multi-tenancy, billing, durable queues and tenant storage are intentionally
+  out of scope for this POC.
+
+## Built with NebulaCloud Studio
+
+This reference application was designed, built, tested and deployed with
+[NebulaCloud Studio](https://nebulacloud.studio) — as one example of Studio taking
+a domain engineering requirement (BIM interoperability) to a working application.
+
+## License
+
+[MIT](LICENSE) — fork it, run it, build on it.

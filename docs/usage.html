@@ -312,14 +312,15 @@ for name, url in done[&quot;outputs&quot;].items():
 <pre><code>.rvt ──► Autodesk APS Model Derivative ──► IFC derivative ──► native IFC pipeline ──► GLB/GLTF + metadata.json
 </code></pre>
 <ul>
-<li><strong>With credentials</strong> — set <code>APS_CLIENT_ID</code> and <code>APS_CLIENT_SECRET</code> and the
-  pipeline runs the real APS adapter (<code>backend/aps_adapter.py</code>): authenticate
-  (2-legged OAuth) → create a transient bucket → upload the RVT → translate to
-  an <strong>IFC derivative</strong> (Revit's own IFC export) → download the IFC and
-  normalise it through the same native IFC pipeline.</li>
-<li><strong>Without credentials</strong> — the job <strong>fails with a clear error</strong> telling you to
-  set APS credentials (or upload IFC/glTF/GLB). An uploaded file is never
-  replaced by a bundled sample.</li>
+<li><strong>With credentials</strong> — set <code>APS_CLIENT_ID</code> + <code>APS_CLIENT_SECRET</code> <strong>and</strong>
+  <code>ALLOW_RVT_UPLOAD=1</code>, and the pipeline runs the real APS adapter
+  (<code>backend/aps_adapter.py</code>): authenticate (2-legged OAuth) → create a transient
+  bucket → upload the RVT → translate to an <strong>IFC derivative</strong> (Revit's own IFC
+  export) → download the IFC and normalise it through the same native IFC pipeline.</li>
+<li><strong>By default (<code>ALLOW_RVT_UPLOAD=0</code>)</strong> — live <code>.rvt</code> uploads are <strong>disabled</strong>
+  with a clear message, because APS Model Derivative quota is limited and must not
+  be consumed by anonymous visitors. Use IFC, the bundled samples, or run locally
+  with your own APS configuration. An uploaded file is never replaced by a sample.</li>
 </ul>
 <blockquote>
 <p>Status note: the APS adapter is a complete implementation that is
@@ -348,14 +349,19 @@ it requires a live Autodesk APS account. See <code>README.md</code> → <em>Capa
 <td><code>1</code> fully blocks uploads (samples-only). Off by default — uploads are enabled for a real POC</td>
 </tr>
 <tr>
+<td><code>ALLOW_RVT_UPLOAD</code></td>
+<td>Revit route</td>
+<td><code>1</code> enables live <code>.rvt</code> uploads via APS. <strong>Off by default</strong> (quota protection)</td>
+</tr>
+<tr>
 <td><code>MAX_FILE_SIZE_MB</code></td>
 <td>Upload limit</td>
-<td>Max upload size in MB (default <code>50</code>)</td>
+<td>Max upload size in MB (default <code>20</code>)</td>
 </tr>
 <tr>
 <td><code>MAX_CONCURRENT_JOBS</code></td>
 <td>Concurrency limit</td>
-<td>Max active jobs (default <code>4</code>)</td>
+<td>Max active jobs (default <code>1</code>)</td>
 </tr>
 <tr>
 <td><code>MAX_JOBS_PER_MINUTE</code></td>
@@ -370,7 +376,7 @@ it requires a live Autodesk APS account. See <code>README.md</code> → <em>Capa
 <tr>
 <td><code>APS_CLIENT_ID</code> + <code>APS_CLIENT_SECRET</code></td>
 <td>Real Revit conversion</td>
-<td>Enables the APS Model Derivative route for <code>.rvt</code></td>
+<td>Enables the APS Model Derivative route for <code>.rvt</code> (BYOC)</td>
 </tr>
 <tr>
 <td><code>AWS_ACCESS_KEY_ID</code> + <code>AWS_SECRET_ACCESS_KEY</code> + <code>AWS_S3_BUCKET</code></td>
@@ -457,8 +463,8 @@ const meta = await fetch(job.outputs.metadata).then(r =&gt; r.json());
 <td>Only <code>.ifc</code>, <code>.rvt</code>, <code>.gltf</code>, <code>.glb</code> are accepted.</td>
 </tr>
 <tr>
-<td><code>.rvt</code> job fails with "requires Autodesk APS credentials"</td>
-<td>Expected without <code>APS_CLIENT_ID</code>/<code>APS_CLIENT_SECRET</code>. Set them, or upload an IFC/glTF/GLB file.</td>
+<td><code>.rvt</code> upload returns 403 ("Live RVT conversion is disabled")</td>
+<td>Expected: <code>ALLOW_RVT_UPLOAD</code> is off by default (APS quota protection). Use IFC/glTF/GLB, or run locally with <code>APS_CLIENT_ID</code>/<code>APS_CLIENT_SECRET</code> + <code>ALLOW_RVT_UPLOAD=1</code>.</td>
 </tr>
 <tr>
 <td>Port already in use</td>

@@ -9,6 +9,8 @@ services:
         sync: false
       - key: DISABLE_UPLOADS
         sync: false
+      - key: ALLOW_RVT_UPLOAD
+        sync: false
       - key: MAX_FILE_SIZE_MB
         sync: false
       - key: MAX_CONCURRENT_JOBS

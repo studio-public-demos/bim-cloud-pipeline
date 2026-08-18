@@ -13,11 +13,12 @@ Each criterion is testable and mapped to a verification method.
 | A3 | GLB is a valid binary glTF (viewable in Three.js GLTFLoader) | in-browser viewer renders geometry | ✅ |
 | A4 | metadata.json is valid JSON with project, elements, properties, quantities, geometry stats | parse + inspect fields | ✅ |
 | A5 | Elements carry GlobalId, name, category, material, property sets, quantities, containment | sample wall/slab show `Pset_*` / `Qto_*` | ✅ |
-| A6 | Revit `.rvt` is recognised; without APS credentials it fails with a clear error (no sample substitution) | POST a `.rvt` → `failed` with "requires Autodesk APS credentials" | ✅ |
+| A6 | Revit `.rvt` is recognised; live `.rvt` uploads are **disabled by default** (`ALLOW_RVT_UPLOAD=0`, quota protection) with a clear message — no sample substitution | POST a `.rvt` → 403 with clear message | ✅ |
 | A7 | Unsupported formats are rejected with a clear message | POST `.zip` → 400 | ✅ |
 | A8 | One-click demo runs the bundled sample end-to-end | POST /api/demo → completed | ✅ |
 | A9 | Public demo mode keeps uploads enabled (real POC) with limits + per-visitor scoping; `DISABLE_UPLOADS=1` makes it samples-only | upload `.ifc` → `completed`; `DISABLE_UPLOADS=1` → `POST /api/jobs` returns 403, `/api/demo/*` works | ✅ |
 | A10 | Public demo mode scopes job history to the requesting visitor | two clients (different cookies) see only their own jobs | ✅ |
+| A11 | Processing concurrency is capped at 1 (bounded memory) | `MAX_CONCURRENT_JOBS` default is `1`; a 2nd job while one is active → 429 | ✅ |
 
 ## UX
 | # | Criterion | Verify | Status |
@@ -40,9 +41,12 @@ Each criterion is testable and mapped to a verification method.
 
 ## Out of scope for POC
 - **Live validation of the Autodesk APS (Model Derivative) adapter** — the
-  adapter is fully implemented and unit-tested with mocks, but exercising it
-  against a real APS account requires `APS_CLIENT_ID` / `APS_CLIENT_SECRET`.
+  adapter is fully implemented and unit-tested with mocks; live `.rvt`
+  processing is disabled by default (`ALLOW_RVT_UPLOAD=0`) to protect APS
+  quota. Exercising it requires `APS_CLIENT_ID` / `APS_CLIENT_SECRET` and quota.
 - **Live validation of S3 storage** — implemented and unit-tested with mocks;
   requires live AWS credentials.
-- Multi-tenant auth, billing.
+- **Production features intentionally omitted:** multi-tenancy, authentication,
+  billing, durable job queues, tenant storage, complex rate limiting,
+  observability stacks, enterprise secret management.
 - Full IFC4 geometry engines (BREP/CSG) — tessellated + extruded profiles only.

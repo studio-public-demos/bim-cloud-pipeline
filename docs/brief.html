@@ -60,11 +60,15 @@ body { margin:0; background:var(--bg); color:var(--text);
   </aside>
   <main class="content"><h1 id="product_brief-bim-cloud-pipeline">PRODUCT_BRIEF — BIM Cloud Pipeline</h1>
 <h2 id="objective">Objective</h2>
-<p>A proof-of-concept (POC) for a cloud BIM conversion pipeline that lets BIM/VDC
-teams upload <strong>Revit (<code>.rvt</code>)</strong> and <strong>IFC (<code>.ifc</code>)</strong> files, run cloud processing
-jobs, and download <strong>optimised GLB/GLTF 3D models</strong> plus <strong>structured BIM metadata
-JSON</strong> — making BIM data consumable on web, mobile, AR/VR, XR and digital-twin
-applications where direct Revit/IFC support is heavy or unavailable.</p>
+<p>A proof-of-concept (POC) for a cloud BIM conversion pipeline that takes
+<strong>IFC</strong> (primary) and <strong>Revit-derived</strong> (optional, via Autodesk APS) BIM input,
+runs cloud processing jobs, and produces <strong>optimised GLB/GLTF 3D models</strong> plus
+<strong>structured BIM metadata JSON</strong> — making BIM geometry and semantics consumable
+on web, mobile, AR/VR, XR and digital-twin applications.</p>
+<h2 id="what-this-is-not">What this is not</h2>
+<p>A replacement for Revit, an engineering-analysis tool, a contractual BIM
+validation system, or a production multi-tenant SaaS. It is a reference
+implementation demonstrating the workflow.</p>
 <h2 id="problem">Problem</h2>
 <p>BIM models are locked inside heavyweight, desktop-bound formats. Downstream
 consumers (web viewers, AR/VR headsets, digital twins, real-time AEC apps)
@@ -76,7 +80,8 @@ no single, simple pipeline that delivers both.</p>
 2. <strong>Process</strong> — parses BIM geometry + semantics and builds derivatives.
 3. <strong>Track</strong> — live job status, stage progress, and processing logs.
 4. <strong>Deliver</strong> — <code>model.glb</code> (self-contained binary), <code>model.gltf</code> + <code>.bin</code>,
-   and <code>metadata.json</code> (structured BIM data) with download endpoints.</p>
+   and <code>metadata.json</code> (structured BIM data) with download endpoints.
+5. <strong>Compare</strong> — side-by-side 3D plus an element/category diff of two models.</p>
 <h2 id="target-users-roles">Target users &amp; roles</h2>
 <ul>
 <li><strong>BIM / VDC teams</strong> — publish models for review and downstream use.</li>
@@ -88,24 +93,27 @@ no single, simple pipeline that delivers both.</p>
 <ol>
 <li>Upload an IFC file → watch stages progress → download GLB + metadata JSON.</li>
 <li>Run the bundled sample (one click) → inspect the 3D viewer + structured JSON.</li>
+<li>Run two models and compare them (Architecture vs Structural).</li>
 <li>Call the REST API to integrate the pipeline into a custom product.</li>
 </ol>
 <h2 id="data-sample-open-source">Data (sample, open-source)</h2>
 <ul>
-<li><code>samples/Building-Architecture.ifc</code> — real IFC4 sample from the
-  buildingSMART <code>Sample-Test-Files</code> repository (PCERT sample scene), a
-  single-family house with walls, slabs, roof, furniture, spaces, property
-  sets, quantities, materials and classification.</li>
+<li><code>samples/Building-Architecture.ifc</code> and <code>samples/Building-Structural.ifc</code> —
+  real IFC4 samples from the buildingSMART <code>Sample-Test-Files</code> repository
+  (single-family house, architectural + structural discipline views) with walls,
+  slabs, beams, roof, furniture, spaces, property sets, quantities, materials
+  and classification.</li>
 </ul>
 <h2 id="acceptance-criteria-summary-see-acceptance_criteriamd">Acceptance criteria (summary — see ACCEPTANCE_CRITERIA.md)</h2>
 <ul>
 <li>Upload + process <code>.ifc</code> → real GLB + GLTF + metadata JSON.</li>
 <li>Job status, stage progress and logs are live.</li>
 <li>3D model is viewable in-browser; metadata is structured and queryable.</li>
+<li>Model comparison works (Architecture vs Structural).</li>
 <li>Revit <code>.rvt</code> route is clearly handled: real Autodesk APS adapter
-  (implemented, unit-tested with mocks, not yet live-validated); without APS
-  credentials the job fails with a clear error (an uploaded file is never
-  replaced by a bundled sample).</li>
+  (implemented, unit-tested with mocks, not live-validated). Live <code>.rvt</code>
+  uploads are <strong>disabled by default</strong> (<code>ALLOW_RVT_UPLOAD=0</code>) to protect APS
+  quota; the adapter is documented for local/self-hosted BYOC use.</li>
 <li>Responsive UI; no blocking console errors.</li>
 </ul>
 <h2 id="capability-status">Capability status</h2>
@@ -135,14 +143,17 @@ no single, simple pipeline that delivers both.</p>
 </tr>
 <tr>
 <td>Revit <code>.rvt</code> → APS</td>
-<td><strong>Implemented + unit-tested (mocked)</strong> — not live-validated (needs live APS account)</td>
+<td><strong>Implemented + unit-tested (mocked)</strong> — external-service-dependent (credentials/quota); not live-validated</td>
 </tr>
 <tr>
 <td>S3 storage</td>
-<td><strong>Implemented + unit-tested (mocked)</strong> — not live-validated (needs live AWS credentials)</td>
+<td><strong>Implemented + unit-tested (mocked)</strong> — external-service-dependent; not live-validated</td>
 </tr>
 </tbody>
-</table></main>
+</table>
+<h2 id="out-of-scope-production-features-intentionally-omitted">Out of scope (production features intentionally omitted)</h2>
+<p>Multi-tenancy, authentication, billing, durable job queues, tenant storage,
+complex rate limiting, observability stacks and enterprise secret management.</p></main>
 </div>
 <script>
   mermaid.initialize({ startOnLoad:false, theme:'dark', securityLevel:'loose' });

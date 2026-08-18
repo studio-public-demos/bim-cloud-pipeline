@@ -176,6 +176,7 @@ def health():
         "service": "bim-cloud-pipeline",
         "publicDemoMode": config.PUBLIC_DEMO_MODE,
         "uploadsEnabled": not config.DISABLE_UPLOADS,
+        "allowRvtUpload": config.ALLOW_RVT_UPLOAD,
         "limits": {
             "maxFileSizeMB": config.MAX_FILE_SIZE_MB,
             "maxConcurrentJobs": config.MAX_CONCURRENT_JOBS,
@@ -219,6 +220,15 @@ def upload_job(request: Request, response: Response, file: UploadFile | None = F
     ext = os.path.splitext(name)[1].lower()
     if ext not in ALLOWED:
         raise HTTPException(400, f"Unsupported format '{ext}'. Allowed: .ifc .rvt .gltf .glb")
+
+    if ext == ".rvt" and not config.ALLOW_RVT_UPLOAD:
+        raise HTTPException(
+            403,
+            "Revit ingestion is available through the optional Autodesk APS adapter. "
+            "Live RVT conversion is disabled in this POC because it requires external "
+            "credentials/quota. Use IFC, run the bundled samples, or run the repository "
+            "locally with your own APS configuration (ALLOW_RVT_UPLOAD=1).",
+        )
 
     _check_rate_limit(request)
     _check_concurrency()

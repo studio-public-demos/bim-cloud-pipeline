@@ -220,14 +220,15 @@ The canonical `.rvt` workflow is:
 .rvt ──► Autodesk APS Model Derivative ──► IFC derivative ──► native IFC pipeline ──► GLB/GLTF + metadata.json
 ```
 
-- **With credentials** — set `APS_CLIENT_ID` and `APS_CLIENT_SECRET` and the
-  pipeline runs the real APS adapter (`backend/aps_adapter.py`): authenticate
-  (2-legged OAuth) → create a transient bucket → upload the RVT → translate to
-  an **IFC derivative** (Revit's own IFC export) → download the IFC and
-  normalise it through the same native IFC pipeline.
-- **Without credentials** — the job **fails with a clear error** telling you to
-  set APS credentials (or upload IFC/glTF/GLB). An uploaded file is never
-  replaced by a bundled sample.
+- **With credentials** — set `APS_CLIENT_ID` + `APS_CLIENT_SECRET` **and**
+  `ALLOW_RVT_UPLOAD=1`, and the pipeline runs the real APS adapter
+  (`backend/aps_adapter.py`): authenticate (2-legged OAuth) → create a transient
+  bucket → upload the RVT → translate to an **IFC derivative** (Revit's own IFC
+  export) → download the IFC and normalise it through the same native IFC pipeline.
+- **By default (`ALLOW_RVT_UPLOAD=0`)** — live `.rvt` uploads are **disabled**
+  with a clear message, because APS Model Derivative quota is limited and must not
+  be consumed by anonymous visitors. Use IFC, the bundled samples, or run locally
+  with your own APS configuration. An uploaded file is never replaced by a sample.
 
 > Status note: the APS adapter is a complete implementation that is
 > **unit-tested with mocks** but has **not been live-validated** — exercising
@@ -241,11 +242,12 @@ The canonical `.rvt` workflow is:
 |----------|---------|--------|
 | `PUBLIC_DEMO_MODE` | Public safety | `1` scopes job history per visitor and shows the confidential-data warning (on by default on hosted platforms) |
 | `DISABLE_UPLOADS` | Public safety | `1` fully blocks uploads (samples-only). Off by default — uploads are enabled for a real POC |
-| `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `50`) |
-| `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `4`) |
+| `ALLOW_RVT_UPLOAD` | Revit route | `1` enables live `.rvt` uploads via APS. **Off by default** (quota protection) |
+| `MAX_FILE_SIZE_MB` | Upload limit | Max upload size in MB (default `20`) |
+| `MAX_CONCURRENT_JOBS` | Concurrency limit | Max active jobs (default `1`) |
 | `MAX_JOBS_PER_MINUTE` | Rate limit | Max job creations per minute per IP (default `10`) |
 | `JOB_TTL_SECONDS` | TTL cleanup | Auto-delete finished jobs/outputs after N seconds (default `3600`; `0` disables) |
-| `APS_CLIENT_ID` + `APS_CLIENT_SECRET` | Real Revit conversion | Enables the APS Model Derivative route for `.rvt` |
+| `APS_CLIENT_ID` + `APS_CLIENT_SECRET` | Real Revit conversion | Enables the APS Model Derivative route for `.rvt` (BYOC) |
 | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` + `AWS_S3_BUCKET` | Cloud storage | Publishes outputs to S3 with presigned URLs |
 | `AWS_REGION` (optional) | Cloud storage | S3 region (default `us-east-1`) |
 
@@ -317,7 +319,7 @@ const meta = await fetch(job.outputs.metadata).then(r => r.json());
 | `ModuleNotFoundError` | Run `pip install -r requirements.txt`. |
 | 3D viewer stays blank / "Waiting for GLB" | Job hasn't finished; check **Logs**. Requires internet for the Three.js CDN. |
 | `Unsupported format '.zip'` (HTTP 400) | Only `.ifc`, `.rvt`, `.gltf`, `.glb` are accepted. |
-| `.rvt` job fails with "requires Autodesk APS credentials" | Expected without `APS_CLIENT_ID`/`APS_CLIENT_SECRET`. Set them, or upload an IFC/glTF/GLB file. |
+| `.rvt` upload returns 403 ("Live RVT conversion is disabled") | Expected: `ALLOW_RVT_UPLOAD` is off by default (APS quota protection). Use IFC/glTF/GLB, or run locally with `APS_CLIENT_ID`/`APS_CLIENT_SECRET` + `ALLOW_RVT_UPLOAD=1`. |
 | Port already in use | Run with a different `--port` (e.g. `--port 9000`). |
 
 ## 10. Limitations (POC scope)

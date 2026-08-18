@@ -21,8 +21,10 @@ def test_config_defaults():
         import importlib
         importlib.reload(config)
         assert config.PUBLIC_DEMO_MODE is False
-        assert config.MAX_FILE_SIZE_MB == 50
-        assert config.MAX_CONCURRENT_JOBS == 4
+        assert config.DISABLE_UPLOADS is False
+        assert config.ALLOW_RVT_UPLOAD is False
+        assert config.MAX_FILE_SIZE_MB == 20
+        assert config.MAX_CONCURRENT_JOBS == 1
         assert config.MAX_JOBS_PER_MINUTE == 10
         assert config.JOB_TTL_SECONDS == 3600
     print("ok config defaults")

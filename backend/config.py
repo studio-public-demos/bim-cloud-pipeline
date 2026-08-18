@@ -67,10 +67,16 @@ PUBLIC_DEMO_MODE = _bool("PUBLIC_DEMO_MODE", _is_hosted_platform())
 # the public deployment remains a working POC.
 DISABLE_UPLOADS = _bool("DISABLE_UPLOADS", False)
 
+# When True, allow live `.rvt` uploads to use the Autodesk APS adapter.
+# Off by default: APS Model Derivative has limited quota and must not be
+# consumed by anonymous public visitors. BYOC for local/self-hosted use.
+ALLOW_RVT_UPLOAD = _bool("ALLOW_RVT_UPLOAD", False)
+
 # Hard limits (always enforced — they gate exposing public uploads safely).
-MAX_FILE_SIZE_MB = _int("MAX_FILE_SIZE_MB", 50)
+# Concurrency is 1 for the POC to keep peak memory bounded on small hosts.
+MAX_FILE_SIZE_MB = _int("MAX_FILE_SIZE_MB", 20)
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
-MAX_CONCURRENT_JOBS = _int("MAX_CONCURRENT_JOBS", 4)
+MAX_CONCURRENT_JOBS = _int("MAX_CONCURRENT_JOBS", 1)
 MAX_JOBS_PER_MINUTE = _int("MAX_JOBS_PER_MINUTE", 10)
 
 # -- lifecycle / cleanup --------------------------------------------------- #

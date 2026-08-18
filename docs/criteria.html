@@ -105,8 +105,8 @@ body { margin:0; background:var(--bg); color:var(--text);
 </tr>
 <tr>
 <td>A6</td>
-<td>Revit <code>.rvt</code> is recognised; without APS credentials it fails with a clear error (no sample substitution)</td>
-<td>POST a <code>.rvt</code> → <code>failed</code> with "requires Autodesk APS credentials"</td>
+<td>Revit <code>.rvt</code> is recognised; live <code>.rvt</code> uploads are <strong>disabled by default</strong> (<code>ALLOW_RVT_UPLOAD=0</code>, quota protection) with a clear message — no sample substitution</td>
+<td>POST a <code>.rvt</code> → 403 with clear message</td>
 <td>✅</td>
 </tr>
 <tr>
@@ -131,6 +131,12 @@ body { margin:0; background:var(--bg); color:var(--text);
 <td>A10</td>
 <td>Public demo mode scopes job history to the requesting visitor</td>
 <td>two clients (different cookies) see only their own jobs</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>A11</td>
+<td>Processing concurrency is capped at 1 (bounded memory)</td>
+<td><code>MAX_CONCURRENT_JOBS</code> default is <code>1</code>; a 2nd job while one is active → 429</td>
 <td>✅</td>
 </tr>
 </tbody>
@@ -230,11 +236,14 @@ body { margin:0; background:var(--bg); color:var(--text);
 <h2 id="out-of-scope-for-poc">Out of scope for POC</h2>
 <ul>
 <li><strong>Live validation of the Autodesk APS (Model Derivative) adapter</strong> — the
-  adapter is fully implemented and unit-tested with mocks, but exercising it
-  against a real APS account requires <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code>.</li>
+  adapter is fully implemented and unit-tested with mocks; live <code>.rvt</code>
+  processing is disabled by default (<code>ALLOW_RVT_UPLOAD=0</code>) to protect APS
+  quota. Exercising it requires <code>APS_CLIENT_ID</code> / <code>APS_CLIENT_SECRET</code> and quota.</li>
 <li><strong>Live validation of S3 storage</strong> — implemented and unit-tested with mocks;
   requires live AWS credentials.</li>
-<li>Multi-tenant auth, billing.</li>
+<li><strong>Production features intentionally omitted:</strong> multi-tenancy, authentication,
+  billing, durable job queues, tenant storage, complex rate limiting,
+  observability stacks, enterprise secret management.</li>
 <li>Full IFC4 geometry engines (BREP/CSG) — tessellated + extruded profiles only.</li>
 </ul></main>
 </div>

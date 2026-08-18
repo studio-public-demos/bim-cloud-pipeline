@@ -71,10 +71,14 @@ async function api(path, opts) {
 async function uploadFile(file) {
   const fd = new FormData();
   fd.append('file', file);
-  const job = await api('/api/jobs', { method: 'POST', body: fd });
-  state.activeId = job.id;
-  refreshJobs();
-  openDetail(job.id);
+  try {
+    const job = await api('/api/jobs', { method: 'POST', body: fd });
+    state.activeId = job.id;
+    refreshJobs();
+    openDetail(job.id);
+  } catch (err) {
+    alert('Upload failed: ' + err.message);
+  }
 }
 
 // ---------------------------------------------------------------------------

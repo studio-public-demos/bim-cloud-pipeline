@@ -12,6 +12,7 @@ Every stage is logged so the dashboard can show live progress.
 """
 from __future__ import annotations
 
+import gc
 import json
 import os
 import shutil
@@ -64,6 +65,9 @@ def run_pipeline(job_id: str, src_path: str, store):
     except Exception as exc:  # noqa: BLE001
         store.update(job_id, status="failed", progress=100, error=str(exc))
         log(f"ERROR: {exc}")
+    finally:
+        # Release any large in-memory geometry from this job before the next one.
+        gc.collect()
 
 
 def _process_ifc(job_id, src_path, store, log, stage):

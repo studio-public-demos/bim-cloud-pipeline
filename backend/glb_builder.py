@@ -3,11 +3,11 @@
 Coordinates are converted from IFC millimetres to metres (GLTF convention),
 and per-element vertex colours are preserved so the 3D model stays visually
 meaningful in any glTF viewer.
+
+numpy/trimesh are imported lazily inside build_mesh() so the API can serve
+health/status requests without holding those heavy libraries in memory.
 """
 from __future__ import annotations
-
-import numpy as np
-import trimesh
 
 # Analytical volumes (rooms, zones) are kept in metadata but excluded from the
 # visual mesh so they don't occlude the building fabric.
@@ -16,6 +16,9 @@ SKIP_CATEGORIES = {"space", "zone", "site", "building", "storey", "project"}
 
 def build_mesh(model: dict, use_placement: bool = True):
     """Return a trimesh.Trimesh with vertex colours from the extracted model."""
+    import numpy as np
+    import trimesh
+
     verts = []
     faces = []
     vcolors = []
